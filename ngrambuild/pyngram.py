@@ -9,6 +9,8 @@ import sys
 import json
 import time
 sys.path.append('../common')
+sys.path.append('../log_info/')
+from logger import get_logger
 import readdata
  
 class voters:
@@ -294,7 +296,7 @@ class voters:
             elif model == "re" and way == "normal":
                 if key != 1:
                     if t_now > T and (((t_pre == 0) or (t_now/t_pre > 1 + r)) and ((t_last == 0) or (t_now/t_last > 1 + r))):
-                    # print(key)
+                    # print(key
                         t_flos.append(key)
                 else:
                     if t_now > T and ((t_last == 0) or (t_now/t_last > 1 + r)):
