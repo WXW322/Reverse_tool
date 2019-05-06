@@ -12,6 +12,8 @@ sys.path.append('../common')
 sys.path.append('../log_info/')
 from logger import get_logger
 import readdata
+
+voter_logger = get_logger('../log_info/message_vote')
  
 class voters:
     def __init__(self):
@@ -397,11 +399,12 @@ class voters:
         t_me_entry_los = []
         for i in range(len(messages)):
             t_fre_r,t_entry_r = self.vote_sequence(messages[i],h,t_fres,t_entrys)
-            t_fre_r = self.filter_los(t_fre_r,int(len(messages[i]) - h))
-            t_entry_r = self.filter_los(t_entry_r,int(len(messages[i]) - h))
+            t_fre_r = self.filter_los(t_fre_r, int(len(messages[i]) - h))
+            t_entry_r = self.filter_los(t_entry_r, int(len(messages[i]) - h))
             if(combine == 'yes'):
                 t_fre_votes = self.get_gvotes([t_fre_r, t_entry_r])
                 t_candidate_loc = self.vote_singlese(t_fre_votes, 'abs', 'normal', T, r)
+                voter_logger.error(str(i) + " " + t_candidate_loc)
                 t_mes_frelos.append(t_candidate_loc)
             else:
                 pass
@@ -442,7 +445,6 @@ class voters:
             if t_results[-1] < last_f:
                 t_results.append(-1)
             print(t_results)
-#print(t_results)
 
         elif ways == "g" and combine == "yes":
             sum_los = []
