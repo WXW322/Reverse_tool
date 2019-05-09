@@ -203,7 +203,6 @@ def test_one():
     dealer.generate('/home/wxw/data/ftp/', '/home/wxw/one_shot/ftp/one.pcap', 'ftp')
     end = time.time()
     print(end - start)
-test_one()
 
 
 

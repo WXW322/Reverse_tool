@@ -38,6 +38,12 @@ class transer:
         lo = int(len(messages) * ratio)
         return lengths[lo]
 
+    def listtoids(self, sequences):
+        sequence_ids = []
+        for id, value in enumerate(sequences):
+            sequence_ids.append((id,value))
+        return sequence_ids
+
 
 
 
