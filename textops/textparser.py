@@ -20,5 +20,6 @@ class textparser:
         Format.splitDelimiter(symbol, b'\r\n')
         result = symbol.getcells()
 
-    def teststates(self, ):
+    def teststates(self):
+        pass
 
