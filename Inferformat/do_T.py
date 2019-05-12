@@ -1,14 +1,20 @@
 from treef_loc import treefL
 import sys
+sys.path.append('../common/')
 sys.path.append("../common/Model")
 sys.path.append("../splitter/")
 from canf import prime_b
-from VE_splitter import splitter
+from VE_spliter import splitter
+from readdata import *
 
 def get_format_by_voting_expert(messages, h, combine, model, v_way, T, r):
     message_splitter = splitter()
     message_split = message_splitter.split_by_ve(messages, h, combine, model, v_way, T, r)
-    tree_builder = treefL(message_split, int(0.1 * len(message_split)), 0.2)
+    message_prim_format = {}
+    for key in message_split:
+        message_prim_format[key[0]] = prime_b(key[1])
+        #message_split[key] = prime_b(message_split[key])
+    tree_builder = treefL(message_prim_format, int(0.1 * len(message_split)), 0.2)
     t_result = tree_builder.generate_T()
     t_result.depth_traverse()
     for f in t_result.result:
@@ -38,7 +44,7 @@ def do_init():
         for node_i in f:
             print(node_i.loc)
 
-def do_format_T(path, r_way, h, combine, model, v_way, T, r):
+def do_format_T(data_path, r_way, h, combine, model, v_way, T, r):
     datas = read_datas(data_path, r_way)
     datas = get_puredatas(datas)
     messages = add_tail(datas, h)

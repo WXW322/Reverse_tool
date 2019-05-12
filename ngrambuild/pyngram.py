@@ -13,7 +13,8 @@ sys.path.append('../log_info/')
 from logger import get_logger
 import readdata
 
-voter_logger = get_logger('../log_info/message_vote')
+now_time = str(time.time())
+voter_logger = get_logger('../log_info/message_vote' + now_time, 'messagedetaillogger')
  
 class voters:
     def __init__(self):
@@ -403,8 +404,9 @@ class voters:
             t_entry_r = self.filter_los(t_entry_r, int(len(messages[i]) - h))
             if(combine == 'yes'):
                 t_fre_votes = self.get_gvotes([t_fre_r, t_entry_r])
+                voter_logger.error('raw: ' + str(t_fre_votes))
                 t_candidate_loc = self.vote_singlese(t_fre_votes, 'abs', 'normal', T, r)
-                voter_logger.error(str(i) + " " + t_candidate_loc)
+                voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
                 t_mes_frelos.append(t_candidate_loc)
             else:
                 pass

@@ -44,6 +44,12 @@ class transer:
             sequence_ids.append((id,value))
         return sequence_ids
 
+    def field_keys(self, fields):
+        field_keys = []
+        for field in field_keys:
+            t_key = str(field[0]) + ' ' +str(field[1])
+        return field_keys
+
 
 
 

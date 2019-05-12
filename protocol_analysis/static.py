@@ -112,12 +112,6 @@ class protocol_dis:
 
 
 
-#pp = protocol_dis('','/home/wxw/data/Ethernetip/keys')
-#pp.get_loinfo()
-#pp.get_constant()
-#print (pp.constant)
-#pp.show_lonum(0)
-
 
 
 
