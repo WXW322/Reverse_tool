@@ -5,7 +5,7 @@ class prime_b:
         self.loc = 0
 
     def next(self):
-        if(self.loc < len(self.datas)):
+        if(self.loc < len(self.datas) - 1):
             self.loc = self.loc + 1
         return self.datas[self.loc]
 

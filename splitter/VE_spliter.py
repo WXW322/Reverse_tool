@@ -16,9 +16,9 @@ class splitter:
 
     def split_by_ve(self, messages, h, combine, model, v_way, T=0, r=0, ways="g"):
         voter = pyngram.voters()
-        split_messages = voter.single_message_voter(messages, h, combine, model, v_way, T, r)
+        split_messages = voter.single_message_voter(messages, h, combine, model, v_way, T, r, T_max)
         converter = transer()
-        return converter.listtoids(split_messages[0])
+        return converter.listtoids(split_messages)
 
 
 

@@ -2,6 +2,7 @@ from netzob.all import *
 from treelib import *
 import numpy as np
 import sys
+import time
 sys.path.append("../ngrambuild/")
 sys.path.append("../common/")
 sys.path.append("../class/")

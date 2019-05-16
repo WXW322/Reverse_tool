@@ -12,8 +12,11 @@ sys.path.append('../common')
 sys.path.append('../log_info/')
 from logger import get_logger
 import readdata
+from ve_strategy import  ve_strategy
 
-voter_logger = get_logger('../log_info/message_vote')
+now_time = str(time.time())
+voter_logger = get_logger('../log_info/message_vote' + now_time, 'messagedetaillogger')
+ve_parameter = ve_strategy().vote_parameters
  
 class voters:
     def __init__(self):
@@ -258,8 +261,6 @@ class voters:
                 f_entrys[t_e_item] = 1
             else:
                 f_entrys[t_e_item] = f_entrys[t_e_item] + 1
-            #f_fres.append(i + t_fre)
-            #f_entrys.append(i + t_entry)
             i = i + 1
         i = 0
         while(i < win_L):
@@ -270,7 +271,7 @@ class voters:
             i = i + 1
         return f_fres,f_entrys
 
-    def vote_singlese(self,t_los, model, way,T = 0,r = 0):
+    def vote_for_single_message(self,t_los, model, way,T = 0,r = 0):
         """
         funtion: get final los for one messages
         t_los:vote locations(dict)
@@ -298,11 +299,9 @@ class voters:
             elif model == "re" and way == "normal":
                 if key != 1:
                     if t_now > T and (((t_pre == 0) or (t_now/t_pre > 1 + r)) and ((t_last == 0) or (t_now/t_last > 1 + r))):
-                    # print(key
                         t_flos.append(key)
                 else:
                     if t_now > T and ((t_last == 0) or (t_now/t_last > 1 + r)):
-                    # print(key)                        
                         t_flos.append(key)
             elif model == "re" and way == "loose":
                 if key != 1:
@@ -314,7 +313,56 @@ class voters:
             else:
                 print("error")
         return t_flos
-            
+
+
+
+    def vote_for_single_message_improve(self, t_los):
+        """
+        funtion: get final los for one messages
+        t_los:vote locations(dict)
+        way:vote strategy:str
+        T:vote threshold:int
+        return: final locations(set)
+        """
+        diff_measure = ve_parameter['diff_measure']
+        decision_type = ve_parameter['decision_type']
+        threshold_T = ve_parameter['threshold_T']
+        threshold_R = ve_parameter['threshold_R']
+        threshold_max = ve_parameter['threshold_max']
+        t_flos = []
+        for key in t_los:
+            t_now = t_los[key]
+            pre_key = key - 1
+            last_key = key + 1
+            t_pre = 0 if pre_key not in t_los else t_los[pre_key]
+            t_last = 0 if last_key not in t_los else t_los[last_key]
+            if diff_measure == "abs" and decision_type == "normal":
+                if t_now > threshold_max or (t_now > threshold_T and t_now > t_pre and t_now > t_last):
+                    t_flos.append(key)
+            elif diff_measure == "abs" and decision_type == "loose":
+                if key != 1:
+                    if t_now > threshold_max or (t_now > threshold_T and ((t_now > t_pre) or (t_now > t_last))):
+                        t_flos.append(key)
+                else:
+                    if t_now > threshold_max or (t_now > threshold_T and ((t_now > t_pre) and (t_now > t_last))):
+                        t_flos.append(key)
+            elif diff_measure == "re" and decision_type == "normal":
+                if key != 1:
+                    if t_now > threshold_max or (t_now > threshold_T and (((t_pre == 0) or (t_now/t_pre > 1 + threshold_R)) and ((t_last == 0) or (t_now/t_last > 1 + threshold_R)))):
+                        t_flos.append(key)
+                else:
+                    if t_now > threshold_max or (t_now > threshold_T and ((t_last == 0) or (t_now/t_last > 1 + threshold_R))):
+                        t_flos.append(key)
+            elif diff_measure == "re" and decision_type == "loose":
+                if key != 1:
+                    if t_now > threshold_max or (t_now > threshold_T and (((t_pre == 0) or (t_now/t_pre > 1 + threshold_R)) or ((t_last == 0) or (t_now/t_last > 1 + threshold_R)))):
+                        t_flos.append(key)
+                else:
+                    if t_now > threshold_max or (t_now > threshold_T and ((t_last == 0) or (t_now/t_last > 1 + threshold_R))):
+                        t_flos.append(key)
+            else:
+                print("error")
+        return t_flos
 
     def tulple2dic(self,tulple):
         t_dic = {}
@@ -336,7 +384,7 @@ class voters:
             t_temp_lo = sorted(t_setemp.items(),key = lambda x:x[0])
             print(t_temp_lo)
             t_temp_lo = self.tulple2dic(t_temp_lo)
-            t_fsequence.append(self.vote_singlese(t_temp_lo,way,T))
+            t_fsequence.append(self.vote_for_single_message(t_temp_lo,way,T))
         return t_fsequence
 
     def get_single_votes(self, sentence):
@@ -387,7 +435,7 @@ class voters:
             los[length] = 1
         return los
 
-    def single_message_voter(self, messages, h, combine = "no", model = "abs", v_way = "normal", T=0, r=0):
+    def single_message_voter(self, messages, h, voters = "both", model = "abs", v_way = "normal", T=0, r=0):
         t_dics = self.get_keywords(messages,h + 1)
         t_fres = self.get_frequent(t_dics,h + 1)
         t_fres["300"] = 0
@@ -395,20 +443,68 @@ class voters:
         t_entrys = self.get_backentry(t_dics,h + 1)
         self.words_entry = t_entrys
         self.words_table = t_dics
-        t_mes_frelos = []
-        t_me_entry_los = []
+        f_boundaries = []
+        voters = ve_parameter['voters']
+
         for i in range(len(messages)):
             t_fre_r,t_entry_r = self.vote_sequence(messages[i],h,t_fres,t_entrys)
             t_fre_r = self.filter_los(t_fre_r, int(len(messages[i]) - h))
             t_entry_r = self.filter_los(t_entry_r, int(len(messages[i]) - h))
-            if(combine == 'yes'):
+            if(voters == 'both'):
                 t_fre_votes = self.get_gvotes([t_fre_r, t_entry_r])
-                t_candidate_loc = self.vote_singlese(t_fre_votes, 'abs', 'normal', T, r)
-                voter_logger.error(str(i) + " " + t_candidate_loc)
-                t_mes_frelos.append(t_candidate_loc)
+                voter_logger.error('raw: ' + str(t_fre_votes))
+                t_candidate_loc = self.vote_for_single_message(t_fre_votes, model, v_way, T, r)
+                voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
+                f_boundaries.append(t_candidate_loc)
+            elif voters == 'frequent_voter':
+                voter_logger.error('raw + frequent: ' + str(t_fre_r))
+                t_candidate_loc = self.vote_for_single_message(t_fre_r, model, v_way, T, r)
+                voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
+                f_boundaries.append(t_candidate_loc)
             else:
-                pass
-        return t_mes_frelos, t_me_entry_los
+                voter_logger.error('raw + entry: ' + str(t_fre_r))
+                t_candidate_loc = self.vote_for_single_message(t_entry_r, model, v_way, T, r)
+                voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
+                f_boundaries.append(t_candidate_loc)
+        return f_boundaries
+
+    def single_message_voter_improve(self, messages):
+        height = ve_parameter['height']
+        voters = ve_parameter['voters']
+        diff_measure = ve_parameter['diff_measure']
+        decision_type = ve_parameter['decision_type']
+        threshold_T = ve_parameter['threshold_T']
+        threshold_R = ve_parameter['threshold_R']
+        threshold_max = ve_parameter['threshold_max']
+        t_dics = self.get_keywords(messages, height + 1)
+        t_fres = self.get_frequent(t_dics, height + 1)
+        t_fres["300"] = 0
+        self.words_fre = t_fres
+        t_entrys = self.get_backentry(t_dics, height + 1)
+        self.words_entry = t_entrys
+        self.words_table = t_dics
+        f_boundaries = []
+        for i in range(len(messages)):
+            t_fre_r, t_entry_r = self.vote_sequence(messages[i], height, t_fres, t_entrys)
+            t_fre_r = self.filter_los(t_fre_r, int(len(messages[i]) - height))
+            t_entry_r = self.filter_los(t_entry_r, int(len(messages[i]) - height))
+            if (voters == 'both'):
+                t_fre_votes = self.get_gvotes([t_fre_r, t_entry_r])
+                voter_logger.error('raw: ' + str(t_fre_votes))
+                t_candidate_loc = self.vote_for_single_message(t_fre_votes, voters, diff_measure, T, r)
+                voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
+                f_boundaries.append(t_candidate_loc)
+            elif voters == 'frequent_voter':
+                voter_logger.error('raw + frequent: ' + str(t_fre_r))
+                t_candidate_loc = self.vote_for_single_message(t_fre_r, model, v_way, T, r)
+                voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
+                f_boundaries.append(t_candidate_loc)
+            else:
+                voter_logger.error('raw + entry: ' + str(t_fre_r))
+                t_candidate_loc = self.vote_for_single_message(t_entry_r, model, v_way, T, r)
+                voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
+                f_boundaries.append(t_candidate_loc)
+        return f_boundaries
 
 
 
@@ -435,12 +531,8 @@ class voters:
             t_lastone = lo_f[max(lo_f,key = lo_f.get)]
             t_lasttwo = lo_e[max(lo_e,key = lo_e.get)]
             last_f = max(t_lastone,t_lasttwo)
-            #print(lo_f)
-            #print(lo_e)
-            lo_vf = self.vote_singlese(lo_f, model, v_way, T, r)
-            lo_ve = self.vote_singlese(lo_e, model, v_way, T, r)
-            #print(lo_vf)
-            #print(lo_ve)
+            lo_vf = self.vote_for_single_message(lo_f, model, v_way, T, r)
+            lo_ve = self.vote_for_single_message(lo_e, model, v_way, T, r)
             t_results = self.merge_splits(lo_vf,lo_ve)
             if t_results[-1] < last_f:
                 t_results.append(-1)
@@ -452,7 +544,7 @@ class voters:
             sum_los.extend(t_me_entry_los)
             sum_Tlos = self.get_gvotes(sum_los)
             t_lasts = sum_Tlos[-1]
-            t_results = self.vote_singlese(sum_Tlos,way=v_way)
+            t_results = self.vote_for_single_message(sum_Tlos,way=v_way)
             if(t_results[-1] < t_lasts):
                 t_results.append(-1)
         
