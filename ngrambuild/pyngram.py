@@ -491,17 +491,17 @@ class voters:
             if (voters == 'both'):
                 t_fre_votes = self.get_gvotes([t_fre_r, t_entry_r])
                 voter_logger.error('raw: ' + str(t_fre_votes))
-                t_candidate_loc = self.vote_for_single_message(t_fre_votes, voters, diff_measure, T, r)
+                t_candidate_loc = self.vote_for_single_message_improve(t_fre_votes, voters, diff_measure, T, r)
                 voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
                 f_boundaries.append(t_candidate_loc)
             elif voters == 'frequent_voter':
                 voter_logger.error('raw + frequent: ' + str(t_fre_r))
-                t_candidate_loc = self.vote_for_single_message(t_fre_r, model, v_way, T, r)
+                t_candidate_loc = self.vote_for_single_message_improve(t_fre_r, model, v_way, T, r)
                 voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
                 f_boundaries.append(t_candidate_loc)
             else:
                 voter_logger.error('raw + entry: ' + str(t_fre_r))
-                t_candidate_loc = self.vote_for_single_message(t_entry_r, model, v_way, T, r)
+                t_candidate_loc = self.vote_for_single_message_improve(t_entry_r, model, v_way, T, r)
                 voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
                 f_boundaries.append(t_candidate_loc)
         return f_boundaries
