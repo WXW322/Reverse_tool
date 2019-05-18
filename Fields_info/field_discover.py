@@ -11,6 +11,7 @@ from ranker import ranker
 from word_convert import word_convert
 from VE_spliter import splitter
 from logger import get_logger
+from Abtest import ABtest
 
 class words_discover:
     def __init__(self):
@@ -19,6 +20,8 @@ class words_discover:
     def infer_words_by_ve(self, data_path, r_way, h, combine, model, v_way, T, r):
         datas = read_datas(data_path, r_way)
         datas = get_puredatas(datas)
+        ABtest_now = ABtest()
+        datas = datas[0:int(len(datas) * ABtest_now.ratio)]
         messages = add_tail(datas, h)
         message_splitter = splitter()
         message_split = message_splitter.split_by_ve(messages, h, combine, model, v_way, T, r)
