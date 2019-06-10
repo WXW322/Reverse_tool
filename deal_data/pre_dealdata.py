@@ -4,13 +4,19 @@ from scapy.utils import PcapReader,PcapWriter
 import sys
 
 def get_srcip(single_pack):
-    return single_pack['IP'].fields['src']
+    if 'IP' in single_pack:
+        return single_pack['IP'].fields['src']
+    else:
+        return 'None ip'
 
 def get_dstip(single_pack):
-    return single_pack['IP'].fields['dst']
+    if 'IP' in single_pack:
+        return single_pack['IP'].fields['dst']
+    else:
+        return 'None_ip'
 
 
-def classify_bysrc(file_name):
+def classify_bysrc(file_name, file_to):
     packages = scapy.rdpcap(file_name)
     t_results = {}
     for p in packages:
@@ -23,15 +29,15 @@ def classify_bysrc(file_name):
             t_results[get_srcip(p) + get_dstip(p)].append(p)
     for key in t_results:
         t_temp = t_results[key]
-        t_writer = PcapWriter('/home/wxw/data/cip_datanew/' + key + '.pcap',append=True)
+        t_writer = PcapWriter(file_to + key + '.pcap',append=True)
         for p in t_results[key]:
             t_writer.write(p)
         t_writer.flush()
         t_writer.close()
 
 
-#package = scapy.rdpcap('/home/wxw/data/modbusdata.pcap')
-classify_bysrc('/home/wxw/data/cip_test/cip_perf.pcap')
+if __name__ == '__main__':
+    classify_bysrc('/home/wxw/data/http/purehttp.pcap', '/home/wxw/data/http_split/')
 
 
 

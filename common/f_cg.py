@@ -46,8 +46,9 @@ class transer:
 
     def field_keys(self, fields):
         field_keys = []
-        for field in field_keys:
+        for field in fields:
             t_key = str(field[0]) + ' ' +str(field[1])
+            field_keys.append(t_key)
         return field_keys
 
 
