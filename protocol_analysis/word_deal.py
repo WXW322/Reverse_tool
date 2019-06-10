@@ -65,11 +65,6 @@ class message_dealer:
                 t_messages.append(message.data)
         else:
             t_messages = self.messages
-        #print(t_messages)
-        #print(lo_b)
-        #print(lo_e)
-        #print(len(conster.get_logapinfo(t_messages,lo_b,lo_e)))
-        
         t_r, t_l,_,_,_ = conster.get_logapinfo(t_messages,lo_b,lo_e)
         if (t_l[0][1] > 0.98):
             return 1
@@ -86,15 +81,11 @@ class message_dealer:
 
     def pearson(self, vector1, vector2):
         n = len(vector1)
-        # simple sums
         sum1 = sum(float(vector1[i]) for i in range(n))
         sum2 = sum(float(vector2[i]) for i in range(n))
-        # sum up the squares
         sum1_pow = sum([pow(v, 2.0) for v in vector1])
         sum2_pow = sum([pow(v, 2.0) for v in vector2])
-        # sum up the products
         p_sum = sum([vector1[i] * vector2[i] for i in range(n)])
-        # 分子num，分母den
         num = p_sum - (sum1 * sum2 / n)
         den = math.sqrt((sum1_pow - pow(sum1, 2) / n) * (sum2_pow - pow(sum2, 2) / n))
         if den == 0:
@@ -154,8 +145,6 @@ class message_dealer:
         else:
             t_messages = self.messages
         t_dataone, t_datatwo, t_lens = t_lener.get_lengthinfo(t_messages, lo_s, lo_e)
-        #print(t_datatwo)
-        #print(t_lens)
         acc_big = 0
         for i in range(len(t_dataone)):
             if (abs((t_dataone[i] - t_lens[i])) <= 1):
@@ -164,9 +153,6 @@ class message_dealer:
         for i in range(len(t_datatwo)):
             if (abs((t_datatwo[i] - t_lens[i])) <= 1):
                 acc_small = acc_small + 1
-        #print(acc_big)
-        #print(acc_small)
-        #print(len(t_dataone))
         if ((acc_small / len(t_dataone)) > 0.8 or (acc_big / len(t_dataone)) > 0.8):
             return 1
         else:
@@ -191,12 +177,7 @@ class message_dealer:
         t_messages = []
         for message in messages:
             t_messages.append(message.data)
-        #print(len(t_messages))
         t_dataone, t_datatwo, t_series = t_lener.get_seidinfo(t_messages, lo_s, lo_e)
-        #print (len(t_dataone))
-        #print(t_dataone)
-        #print(t_datatwo)
-        #print(t_series)
         j_one = self.pearson(t_dataone, t_series)
         j_two = self.pearson(t_datatwo, t_series)
         j_final = max(j_one, j_two)
@@ -224,7 +205,6 @@ class message_dealer:
 
 
     def find_constfunc(self, lo_b, lo_e,data="no"):
-        # develop absolute or relative
         conster = words_basic.words_base()
         t_messages = []
         if data == "no":
@@ -233,14 +213,10 @@ class message_dealer:
         else:
             t_messages = self.messages
         t_r, t_l, _ = conster.get_logapinfo(t_messages, lo_b, lo_e)
-        #t_lo = 1 - lo_b / L
-        #t_num = 1 - len(t_r) / 255
         t_en = 0
         for t_pro in t_l:
             t_en = t_en + t_pro[1] * np.log(t_pro[1])
         t_en = -t_en
-        #print(t_l)
-        #print(t_lo,t_num,t_en)
         return t_en,len(t_l)
 
     def find_func(self,t_idoms,h_len,T=0):
@@ -306,9 +282,6 @@ class message_dealer:
     def get_datainfo(self,location,data):
         l_s = location[0]
         l_e = location[1]
-        #location_f = words_deal.message_dealer(datas)
-        #file = open(info_dir, 'w+')
-        #sys.stdout = file
         if (self.find_constone(l_s,l_e,data) == 1):
             return 1
         elif(self.find_lenbyaccu(l_s,l_e,data) == 1):

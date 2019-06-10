@@ -67,6 +67,7 @@ def clusbydes(messages):
         else:
             dess.append(message)
      return srcs,dess
+
 def clusbydesT(Melist):
     src_Me = []
     des_Me = []
@@ -75,4 +76,12 @@ def clusbydesT(Melist):
         src_Me.extend(src_t)
         des_Me.extend(des_t)
     return src_Me,des_Me
+
+def cut_messages(messages, range):
+    cutted_messages = []
+    for message in messages:
+        if len(message) > range:
+            message = message[0:range]
+        cutted_messages.append(message)
+    return cutted_messages
  
