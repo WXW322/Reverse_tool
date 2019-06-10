@@ -77,10 +77,13 @@ class words_base:
         for key in t_result:
             t_prob[key] = t_result[key] / t_len
         t_result = sorted(t_result.items(), key=lambda d: d[1], reverse=True)
+        #t_result = dict((x,y) for x,y in t_result)
         t_prob = sorted(t_prob.items(),key = lambda d:d[1],reverse=True)
         print("aa")
         print(t_result)
         print(t_prob)
+        #print(t_datas)
+        sys.exit()
         return t_result,t_prob,t_datas
 
     def get_pureproinfo(self,series_list,lo_s,lo_e):

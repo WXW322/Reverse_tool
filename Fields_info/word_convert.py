@@ -11,7 +11,7 @@ class word_convert:
         key = ""
         try:
             key = key + str(loc[0]) + " "
-            key = key + str(loc[1])
+            key = key + str(loc[1]) + " "
         except Exception as e:
             print("convert key error:" + str(e))
         return key

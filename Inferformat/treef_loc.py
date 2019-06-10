@@ -1,7 +1,8 @@
 from treef import *
 from node import *
 import sys
-from common.Model.canf import *
+sys.path.append('../common/Model/')
+from canf import *
 
 class treefL(treef):
     def __init__(self, datas, T_c, T_r):
@@ -26,7 +27,6 @@ class treefL(treef):
             if t_next not in t_num:
                 t_num[t_next] = []
             t_num[t_next].append(data)
-
         t_v = []
         for key in t_num:
             if float(len(t_num[key])) / float(len(n_data)) >= self.R and len(t_num[key]) >= self.C:
