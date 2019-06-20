@@ -250,8 +250,6 @@ class message_dealer:
             if t_fnum > T:
                 T_f.append(t_idoms[i])
             i = i + 1
-
-
         return t_f
 
 

@@ -4,4 +4,4 @@ class ABtest:
         self.prime_strategy = {}
         self.improve_strategy = {}
         self.ratio = 1.0
-        self.protocol = 'iec104'
+        self.protocol = 'modbus'

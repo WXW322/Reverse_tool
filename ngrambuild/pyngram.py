@@ -10,14 +10,16 @@ import json
 import time
 from log_info.logger import get_logger, vote_pre
 import common.readdata
-from Config.ve_strategy import  ve_strategy
+from Config.ve_strategy import ve_strategy
+from Config.log_config import log_path
 from Data_base.Data_redis.redis_deal import redis_deal
 from Config.encode_types import Message_encoder
 
 now_time = time.strftime("%Y-%m-%d %H:%m:%s", time.localtime(time.time()))
-voter_logger = get_logger('../log_info/message_vote' + vote_pre + now_time, 'messagedetaillogger')
+voter_logger = get_logger(log_path + '/message_vote' + vote_pre + now_time, 'messagedetaillogger')
 ve_parameter = ve_strategy().vote_parameters
 redis_writer = redis_deal()
+redis_prefix = ve_strategy().get_strategy_str()
  
 class voters:
     def __init__(self):
@@ -322,7 +324,7 @@ class voters:
             i = i + 1
         return f_fres,f_entrys
 
-    def vote_for_single_message(self,t_los, model, way,T = 0,r = 0):
+    def vote_for_single_message(self,t_los, diff_measure, way,T = 0,r = 0):
         """
         funtion: get final los for one messages
         t_los:vote locations(dict)
@@ -337,24 +339,24 @@ class voters:
             last_key = key + 1
             t_pre = 0 if pre_key not in t_los else t_los[pre_key]
             t_last = 0 if last_key not in t_los else t_los[last_key]
-            if model == "abs" and way == "normal":
+            if diff_measure == "abs" and way == "normal":
                 if t_now > T and t_now > t_pre and t_now > t_last:
                     t_flos.append(key)
-            elif model == "abs" and way == "loose":
+            elif diff_measure == "abs" and way == "loose":
                 if key != 1:
                     if t_now > T and ((t_now > t_pre) or (t_now > t_last)):
                         t_flos.append(key)
                 else:
                     if t_now > T and ((t_now > t_pre) and (t_now > t_last)):
                         t_flos.append(key)
-            elif model == "re" and way == "normal":
+            elif diff_measure == "re" and way == "normal":
                 if key != 1:
                     if t_now > T and (((t_pre == 0) or (t_now/t_pre > 1 + r)) and ((t_last == 0) or (t_now/t_last > 1 + r))):
                         t_flos.append(key)
                 else:
                     if t_now > T and ((t_last == 0) or (t_now/t_last > 1 + r)):
                         t_flos.append(key)
-            elif model == "re" and way == "loose":
+            elif diff_measure == "re" and way == "loose":
                 if key != 1:
                     if t_now > T and (((t_pre == 0) or (t_now/t_pre > 1 + r)) or ((t_last == 0) or (t_now/t_last > 1 + r))):
                         t_flos.append(key)
@@ -486,18 +488,18 @@ class voters:
             los[length] = 1
         return los
 
-    def single_message_voter(self, messages, h, voters = "both", model = "abs", v_way = "normal", T=0, r=0):
+    def single_message_voter(self, messages, h, voters = "both", diff_measure = "abs", v_way = "normal", T=0, r=0):
         h = ve_parameter['height']
         voters = ve_parameter['voters']
-        model = ve_parameter['diff_measure']
+        diff_measure = ve_parameter['diff_measure']
         v_way = ve_parameter['decision_type']
         T = ve_parameter['Threshold_T']
         r = ve_parameter['Threshod_R']
         t_dics = self.get_keywords(messages,h + 1)
-        redis_writer.insert_to_redis('correct_raw_words', t_dics)
+        redis_writer.insert_to_redis(redis_prefix + 'correct_raw_words', t_dics)
         t_fres = self.get_frequent(t_dics,h + 1)
         t_fres["300"] = 0
-        redis_writer.insert_to_redis('normal_correct_words', t_fres)
+        redis_writer.insert_to_redis(redis_prefix + 'normal_correct_words', t_fres)
         self.words_fre = t_fres
         t_entrys = self.get_backentry(t_dics,h + 1)
         self.words_entry = t_entrys
@@ -512,17 +514,17 @@ class voters:
             if(voters == 'both'):
                 t_fre_votes = self.get_gvotes([t_fre_r, t_entry_r])
                 #voter_logger.error('raw: ' + str(t_fre_votes))
-                t_candidate_loc = self.vote_for_single_message(t_fre_votes, model, v_way, T, r)
+                t_candidate_loc = self.vote_for_single_message(t_fre_votes, diff_measure, v_way, T, r)
                 #voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
                 f_boundaries.append(t_candidate_loc)
             elif voters == 'frequent_voter':
                 voter_logger.error('raw + frequent: ' + str(t_fre_r))
-                t_candidate_loc = self.vote_for_single_message(t_fre_r, model, v_way, T, r)
+                t_candidate_loc = self.vote_for_single_message(t_fre_r, diff_measure, v_way, T, r)
                 voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
                 f_boundaries.append(t_candidate_loc)
             else:
                 #voter_logger.error('raw + entry: ' + str(t_fre_r))
-                t_candidate_loc = self.vote_for_single_message(t_entry_r, model, v_way, T, r)
+                t_candidate_loc = self.vote_for_single_message(t_entry_r, diff_measure, v_way, T, r)
                 #voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
                 f_boundaries.append(t_candidate_loc)
         return f_boundaries

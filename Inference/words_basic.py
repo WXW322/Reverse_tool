@@ -143,7 +143,6 @@ class words_base:
                 continue
             i = lo_s
             t_key = series[lo_s:lo_e]
-
             if t_key not in t_result:
                 t_result[t_key] = 1
             else:
@@ -156,7 +155,6 @@ class words_base:
         t_result = sorted(t_result.items(), key=lambda d: d[1], reverse=True)
         #t_result = dict((x,y) for x,y in t_result)
         t_prob = sorted(t_prob.items(),key = lambda d:d[1],reverse=True)
-
         return t_result,t_prob,t_datas
 
     def get_lengthinfo(self,series_list,lo_s,lo_e):

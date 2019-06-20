@@ -4,8 +4,10 @@ from common.measure_tool.measure_base import Base_measure
 from Config.ve_strategy import ve_strategy
 from log_info.logger import get_logger
 import time
+from Config.const_config import log_path
 VE_strategy = ve_strategy().get_strategy_str()
-words_logger = get_logger('../log_info/words_compare' + str(VE_strategy) + time.strftime("%Y-%m-%d %H:%m:%s", time.localtime(time.time())), 'word_compare')
+
+words_logger = get_logger(log_path + '/words_compare' + str(VE_strategy) + time.strftime("%Y-%m-%d %H:%m:%s", time.localtime(time.time())), 'word_compare')
 
 class Fields_measure(Base_measure):
     def __init__(self, words_true, words_pre):
@@ -27,7 +29,6 @@ class Fields_measure(Base_measure):
         infer_cnt = 0
         while(i < topk and i < len(self.pre_data)):
             if self.pre_data[i] in true_dic:
-                print(self.pre_data[i])
                 infer_cnt = infer_cnt + 1
             i = i + 1
         return infer_cnt
