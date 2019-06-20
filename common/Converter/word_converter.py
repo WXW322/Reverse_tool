@@ -61,6 +61,27 @@ class word_convert(Converter):
             borders.pop(-1)
         return borders
 
+    def convert_raw_word_to_order(self, raw_words):
+        analyzer = base_analyzer()
+        word_ranker = ranker()
+        converter = word_convert()
+        num_words = converter.splitwords_bylen(raw_words, 5)
+        for len_word in num_words:
+            num_words[len_word] = word_ranker.rank_tulple(num_words[len_word], reverse=True)
+        prime_words = [word[0] for word in num_words[4]]
+        prime_orders = {}
+        for i in range(len(prime_words)):
+            prime_orders[prime_words[i]] = i
+        order_words = {}
+        order_words[4] = prime_orders
+        start_time = time.time()
+        for i in range(1, 4):
+            order_words[i] = converter.convert_word_order([word[0] for word in num_words[i]], prime_words)
+        end_time = time.time()
+        print(end_time - start_time)
+        print(order_words[0])
+        print(num_words[0])
+
 
 
 
@@ -68,22 +89,9 @@ class word_convert(Converter):
 
 if __name__ == '__main__':
     redis_read = redis_deal()
-    analyzer = base_analyzer()
-    word_ranker = ranker()
     raw_words = redis_read.read_from_redis('modbus_one_frequent_voter_abs_normal_0_0correct_raw_words')
-    converter = word_convert()
-    num_words = converter.splitwords_bylen(raw_words, 5)
-    for len_word in num_words:
-        num_words[len_word] = word_ranker.rank_tulple(num_words[len_word], reverse=True)
-    prime_words = [word[0] for word in num_words[4]]
-    order_words = {}
-    order_words[4] = prime_words
-    start_time = time.time()
-    for i in range(1, 4):
-        order_words[i] = converter.convert_word_order([word[0] for word in num_words[i]], prime_words)
-    end_time = time.time()
-    print(end_time - start_time)
-    print(order_words)
+    word_converter = word_convert()
+    word_converter.convert_raw_word_to_order(raw_words)
 
 
 
