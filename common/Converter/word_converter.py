@@ -56,8 +56,7 @@ class word_convert(Converter):
         """
         words_rank = self.rank.rank_tulple(words)
         borders = [word[0] for word in words_rank]
-
-        borders.append(words_rank[-1][1]) 
+        borders.append(words_rank[-1][1])
         if len(borders) > 0:
             borders.pop(-1)
         return borders
