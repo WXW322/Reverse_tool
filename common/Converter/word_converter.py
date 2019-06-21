@@ -79,8 +79,8 @@ class word_convert(Converter):
             order_words[i] = converter.convert_word_order([word[0] for word in num_words[i]], prime_words)
         end_time = time.time()
         print(end_time - start_time)
-        print(order_words[0])
-        print(num_words[0])
+        print(word_ranker.rank_dic(order_words[1]))
+        print(num_words[1])
 
 
 
