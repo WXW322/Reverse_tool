@@ -53,7 +53,7 @@ def do_format_T(data_path, r_way, h, combine, model, v_way, T, r):
     messages = add_tail(datas, h)
     get_format_by_voting_expert(messages, h, combine, model, v_way, T, r)
 
-do_format_T("/home/wxw/data/iec104", "single", 4, "yes", "abs", "normal", 0, 0)
-
+#do_format_T("/home/wxw/data/iec104", "single", 4, "yes", "abs", "normal", 0, 0)
+print("aaa")
 
 

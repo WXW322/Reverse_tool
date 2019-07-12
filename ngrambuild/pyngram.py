@@ -14,6 +14,7 @@ from Config.ve_strategy import ve_strategy
 from Config.log_config import log_path
 from Data_base.Data_redis.redis_deal import redis_deal
 from Config.encode_types import Message_encoder
+from common.Converter.base_convert import Converter
 
 now_time = time.strftime("%Y-%m-%d %H:%m:%s", time.localtime(time.time()))
 voter_logger = get_logger(log_path + '/message_vote' + vote_pre + now_time, 'messagedetaillogger')
@@ -262,7 +263,6 @@ class voters:
         t_entrys:dict entry table
 
         """
-        t_lo = 0
         t_len = len(itom_s)
         i = 1
         t_min_fre = 100
@@ -285,6 +285,33 @@ class voters:
                 t_entry_lo = i
             i = i + 1
         return t_fre_lo,t_entry_lo
+
+    def order_item_vote(self, itom_s, order_words):
+        """
+        vote words by orders
+        :param itom_s:
+        :param order_words:
+        :return:
+        """
+        t_lo = 0
+        t_len = len(itom_s)
+        i = 1
+        t_min_order = 10000000
+        t_order_lo = -1
+        while (i <= t_len):
+            t_pre = self.s2key(itom_s[0:i])
+            if i < t_len:
+                t_last = self.s2key(itom_s[i:t_len])
+            else:
+                t_last = "300"
+            t_pre_order = order_words[t_pre]
+            t_last_order = order_words[t_last]
+            t_order_w = min(t_pre_order, t_last_order)
+            if t_order_w < t_min_order:
+                t_min_order = t_order_w
+                t_order_lo = i
+            i = i + 1
+        return t_order_lo
 
     def vote_sequence(self,sequence,win_L,t_frer,t_entrys):
         """
@@ -323,6 +350,36 @@ class voters:
                 f_entrys[i] = f_entrys[i] * (win_L / i)
             i = i + 1
         return f_fres,f_entrys
+
+    def order_vote_sequence(self, sequence, win_L, order_words):
+        """
+        :param sequence:
+        :param win_L:
+        :param order_words:
+        :return:
+        """
+        t_len = len(sequence)
+        i = 0
+        f_orders = {}
+        while (i < t_len):
+            if i < t_len - win_L:
+                t_order = self.order_item_vote(sequence[i:i + win_L], order_words)
+            else:
+                t_order = self.order_item_vote(sequence[i:t_len], order_words)
+            order_item = i + t_order
+            if order_item not in f_orders:
+                f_orders[order_item] = 1
+            else:
+                f_orders[order_item] = f_orders[order_item] + 1
+            i = i + 1
+        i = 0
+        while (i < win_L):
+            if i in f_orders:
+                f_orders[i] = f_orders[i] * (win_L / i)
+            i = i + 1
+        return f_orders
+
+
 
     def vote_for_single_message(self,t_los, diff_measure, way,T = 0,r = 0):
         """
@@ -366,6 +423,7 @@ class voters:
             else:
                 print("error")
         return t_flos
+
 
 
 
@@ -495,18 +553,26 @@ class voters:
         v_way = ve_parameter['decision_type']
         T = ve_parameter['Threshold_T']
         r = ve_parameter['Threshod_R']
-        t_dics = self.get_keywords(messages,h + 1)
-        redis_writer.insert_to_redis(redis_prefix + 'correct_raw_words', t_dics)
-        t_fres = self.get_frequent(t_dics,h + 1)
-        t_fres["300"] = 0
-        redis_writer.insert_to_redis(redis_prefix + 'normal_correct_words', t_fres)
+        redis_raw_word_keys = redis_prefix + 'correct_raw_words'
+        if redis_writer.is_exist_key(redis_raw_word_keys):
+            t_dics = redis_writer.read_from_redis(redis_raw_word_keys)
+        else:
+            t_dics = self.get_keywords(messages,h + 1)
+            redis_writer.insert_to_redis(redis_prefix + 'correct_raw_words', t_dics)
+        redis_normal_word_key = redis_prefix + 'normal_correct_words'
+        if redis_writer.is_exist_key(redis_normal_word_key):
+            t_fres = redis_writer.read_from_redis(redis_normal_word_key)
+        else:
+            t_fres = self.get_frequent(t_dics,h + 1)
+            t_fres["300"] = 0
+            redis_writer.insert_to_redis(redis_prefix + 'normal_correct_words', t_fres)
         self.words_fre = t_fres
         t_entrys = self.get_backentry(t_dics,h + 1)
         self.words_entry = t_entrys
         self.words_table = t_dics
         f_boundaries = []
         voters = ve_parameter['voters']
-
+        raw_conv = Converter()
         for i in range(len(messages)):
             t_fre_r,t_entry_r = self.vote_sequence(messages[i],h,t_fres,t_entrys)
             #t_fre_r = self.filter_los(t_fre_r, int(len(messages[i]) - h)) # change
@@ -518,6 +584,7 @@ class voters:
                 #voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
                 f_boundaries.append(t_candidate_loc)
             elif voters == 'frequent_voter':
+                voter_logger.error('raw: ' + str(raw_conv.convert_raw_to_text(messages[i])))
                 voter_logger.error('raw + frequent: ' + str(t_fre_r))
                 t_candidate_loc = self.vote_for_single_message(t_fre_r, diff_measure, v_way, T, r)
                 voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
@@ -528,6 +595,36 @@ class voters:
                 #voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
                 f_boundaries.append(t_candidate_loc)
         return f_boundaries
+
+    def raw_boundary_generate(self, messages, order_wors):
+        """
+        :param messages:
+        :param order_wors:
+        :return:
+        """
+        h = ve_parameter['height']
+        raw_orders = []
+        for message in messages:
+            raw_orders.append(self.order_vote_sequence(message, h, order_wors))
+        return raw_orders
+
+    def messages_boundary_generate(self, prim_orders, order_words):
+        """
+        :param messages:
+        :param order_words:
+        :return:
+        """
+        h = ve_parameter['height']
+        voters = ve_parameter['voters']
+        diff_measure = ve_parameter['diff_measure']
+        v_way = ve_parameter['decision_type']
+        T = ve_parameter['Threshold_T']
+        r = ve_parameter['Threshod_R']
+        f_boundaries = []
+        for prim_order in prim_orders:
+            f_boundaries.append(self.vote_for_single_message(prim_order, diff_measure, v_way, T, r))
+        return f_boundaries
+
 
     def single_message_voter_improve(self, messages):
         height = ve_parameter['height']

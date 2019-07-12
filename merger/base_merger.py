@@ -38,8 +38,23 @@ class base_merger:
                 words.sort(key=lambda x:x.loc[0])
         return words
 
+    def merge_diff_borders(self, border_a, border_b):
+        """
+        merger different candidate borders
+        :param border_a:
+        :param border_b:
+        :return:
+        """
+        set_a = set(border_a)
+        set_b = set(border_b)
+        merge_borders = list(set_a | set_b)
+        merge_borders.sort()
+        return merge_borders
+
+Base_meger = base_merger()
 
 if __name__ == '__main__':
+    """
     locs = []
     locs.append(loc_field((0, 2), 1))
     locs.append(loc_field((2, 3), 0))
@@ -48,7 +63,10 @@ if __name__ == '__main__':
     merger = base_merger()
     for word in merger.merge_words(locs):
         print(word.loc, word.word_type)
-
+    """
+    merger = base_merger()
+    b_r = merger.merge_diff_borders([1,2,3,7,9], [4,5])
+    print(b_r)
 
 
 

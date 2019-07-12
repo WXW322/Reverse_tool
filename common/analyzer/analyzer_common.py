@@ -1,6 +1,7 @@
 from Data_base.Data_redis.redis_deal import redis_deal
 import numpy as np
 import sys
+from sklearn.feature_extraction.text import CountVectorizer
 
 redis_read = redis_deal()
 class base_analyzer:
@@ -33,12 +34,6 @@ class base_analyzer:
             if(word == c_word):
                 break
             i = i + 1
-
-
-    def get_frequent_from_redis(self, key, querys):
-        raw_frequent = redis_read.read_from_redis(key)
-        for query in querys:
-            print('%s: %f' %(query, raw_frequent[query]))
 
     def convert_num_to_frequent(self, words_num_dic):
         t_count = 0
@@ -75,36 +70,40 @@ class base_analyzer:
         words_dic = filter(lambda x: x[1] > T, words_dic)
         return list(words_dic)
 
-    def vote_item(self, itom_s, t_frer, start=0):
-        """
-        function: get vote location of single item
-        itom_s: bytes sequence
-        t_frer: dict frequent table
-        t_entrys:dict entry table
 
-        """
-        t_lo = 0
-        t_len = len(itom_s)
-        i = 1
-        t_min_fre = 100
-        t_max_entry = -100
-        t_fre_lo = -1
-        t_entry_lo = -1
-        while(i <= t_len):
-            t_pre = ' '.join(itom_s[0:i])
-            if i < t_len:
-                t_last = ' '.join(itom_s[i:t_len])
-            else:
-                t_last = "300"
-            print(t_pre, t_frer[t_pre])
-            print(t_last, t_frer[t_last])
-            t_fre = t_frer[t_pre] + t_frer[t_last]
-            if t_fre < t_min_fre:
-                t_min_fre = t_fre
-                t_fre_lo = i
-            i = i + 1
-        print(t_fre_lo)
-        return t_fre_lo
+    def cls_diff_measure(self, A_set, B_set):
+        return len(A_set & B_set) / min(len(A_set), len(B_set))
+
+    def get_f1(self, DataPredict, DataRight):
+        t_H = DataRight[-1]
+        conpbors = set(DataPredict)
+        rpborders = set(DataRight)
+        T_boders = set([i for i in range(t_H + 1)])
+        rnborders = T_boders - rpborders
+        connbors = T_boders - conpbors
+        tpborders = rpborders&conpbors
+        fnborders = rpborders&connbors
+        fpborders = rnborders&conpbors
+        tnborders = rnborders&connbors
+        acc = (len(tpborders) + len(tnborders))/(len(tpborders) + len(tnborders) + len(fnborders) + len(fnborders))
+        pre = len(tpborders)/(len(tpborders) + len(fpborders))
+        recall = (len(tpborders)/(len(tpborders) + len(fnborders)))
+        f1 = 0
+        if pre + recall != 0:
+            f1 = 2*pre*recall/(pre + recall)
+        return (pre,recall,f1)
+        #print("conb:",self.conborders)
+        #print("rb:",self.rborders)
+        #print("To;",T_boders)
+        #print("tp:",tpborders)
+        #print("fn:",tnborders)
+        #print("fp:",fpborders)
+        #print("tn:",tnborders)
+        #print("pre:",pre)
+        #print("recall:",recall)
+        #print("f1:",f1)
+
+
 
 
 
@@ -115,6 +114,12 @@ class base_analyzer:
 
 if __name__ == '__main__':
     analyzer = base_analyzer()
+    sentence = ['1 2 1 2 3']
+    vec = CountVectorizer(min_df=1, ngram_range=(1,2), stop_words=[' ','.'],token_pattern='(?u)\\b\\w\\w*\\b')
+    x = vec.fit_transform(sentence)
+    print(vec.get_feature_names())
+    print(x.toarray())
+
     #words_normal = redis_read.read_from_redis('modbus_frequent_voter_abs_normal_0_0normal_correct_words')
     #analyzer.vote_item(['0', '83', '255', '4'], words_normal)
     #words_normal = redis_read.read_from_redis('modbus_frequent_voter_abs_normal_0_0correct_raw_words')

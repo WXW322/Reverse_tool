@@ -3,19 +3,15 @@ from treelib import *
 import numpy as np
 import sys
 import time
-sys.path.append("../ngrambuild/")
-sys.path.append("../common/")
-sys.path.append("../class/")
-sys.path.append("../Inferformat/")
-import pyngram 
-import f_cg
-import parse
-from readdata import *
-import word_deal
-import output
+from ngrambuild.pyngram import voters
+import Config.f_cg
+from classer.parse import parse
+from common.readdata import *
+from Inference.words_deal import message_dealer
+from common.output import R_out
 import time
-from treef_loc import treefL
-from node import node
+from Inferformat.treef_loc import treefL
+from Inferformat.node import node
 
 class gformat:
     def __init__(self):
@@ -37,11 +33,11 @@ class gformat:
 
 
 
-    def get_format(self,format_type, messages, h, combine, model, v_way, T=0,r=0, ways="g"):
+    def get_format(self,format_type, messages, h, combine, model, v_way, T=0, r=0, ways="g"):
         """
         get single format
         """
-        voter = pyngram.voters()
+        voter = voters()
         infer_format = None
         if format_type == "ies":
             infer_format = voter.get_info(messages, h, combine, model, v_way, T, r, ways)
@@ -52,7 +48,7 @@ class gformat:
 
     def get_formats(self,messages,rules,clus,h,ways,combine,model,v_way,T=0,r=0):
         t_data = None
-        paser = parse.parse()
+        paser = parse()
         transe = f_cg.transer()
         messager = word_deal.message_dealer()
         t_formats = {}
@@ -120,6 +116,7 @@ def get_prime(data_path, r_way, h, combine, model, v_way, T, r):
     g_f = gformat()
     t_f = g_f.get_format('tree', messages, h, combine, model, v_way, T, r)
     t_f.print_tree('single')
+
 
 
 

@@ -27,15 +27,18 @@ class vertical_splitter:
                 t_field = loc_field((i,i), 4)
             fields_set.append(t_field)
         words_f = w_merger.merge_words(fields_set)
-        return words_f
+        candidate_borders = [w.loc[0] for w in words_f]
+        return words_f, candidate_borders
 
 if __name__ == '__main__':
     ver_split = vertical_splitter()
-    datas = read_datas('/home/wxw/data/modbustest', 'single')
+    datas = read_multity_dirs(["/home/wxw/data/modbusdata", "/home/wxw/data/modbus_github"])
     datas = get_puredatas(datas)
-    w_result = ver_split.split_by_words_type(datas, 15)
+    w_result, borders = ver_split.split_by_words_type(datas, 15)
     for w in w_result:
         print(w.loc, w.word_type)
+    print(borders)
+
 
 
 

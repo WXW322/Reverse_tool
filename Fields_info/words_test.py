@@ -119,5 +119,5 @@ def get_new_correct_rank_words(key):
 #raw_to_log("/home/wxw/data/modbusdata", 'single', 'modbus')
 #show_raw_data("/home/wxw/data/iec104")
 #show_data_frequent()
-ve_word()
+#ve_word()
 #get_new_correct_rank_words('word_rank_correct')

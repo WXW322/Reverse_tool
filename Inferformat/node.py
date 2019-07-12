@@ -32,5 +32,8 @@ class node:
         else:
             pass
 
+    def get_prefix(self, loc_e):
+        pass
+
 
 

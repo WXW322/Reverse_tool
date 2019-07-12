@@ -1,5 +1,9 @@
 import json
+import sys
 import redis
+from Config.ve_strategy import ve_strategy
+from common.Converter.base_convert import Converter
+from common.measure_tool.MeasureAb import MeasureAb
 
 class redis_deal:
     def __init__(self, host = 'localhost', port = '6379'):
@@ -18,11 +22,28 @@ class redis_deal:
         else:
             return json.loads(self.link.get(key))
 
+    def is_exist_key(self, key):
+        if self.link.exists(key):
+            return True
+        else:
+            return False
+
+redis_convert = redis_deal()
+
 if __name__ == '__main__':
     redis_dealer = redis_deal()
-    redis_dealer.insert_to_redis('test_wxw', {'aa': 1, 'bb': 2})
-    keys = str(redis_dealer.read_from_redis('test_wxw'))
-    print(keys)
+    #prefix = ve_strategy().GetWordsKeys("EntryWords")
+    #FrequentWordsPrim = redis_dealer.read_from_redis('modbus_one_frequent_voter_abs_normal_0_0_normal_entry_words')
+    #rawWordsSecond = redis_dealer.read_from_redis(prefix);
+    #redis_dealer.insert_to_redis(prefix, FrequentWordsPrim)
+    #rawWordsSecond = redis_dealer.read_from_redis(prefix);
+    #print(MeasureAb().Measure(FrequentWordsPrim, rawWordsSecond))
+
+    #raw_words_ones = redis_dealer.read_from_redis(raw_words_key)
+
+    #redis_dealer.insert_to_redis(raw_words_key, raw_words_values)
+
+
 
 
 

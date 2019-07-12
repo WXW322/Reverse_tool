@@ -1,6 +1,5 @@
-from treef import *
-from node import *
-import sys
+from Inferformat.treef import *
+from Inferformat.node import *
 from common.Model.canf import *
 
 class treefL(treef):
