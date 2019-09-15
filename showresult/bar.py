@@ -20,7 +20,7 @@ def draw_pic(a,b,path):
     plt.close('all')
     
 def draw_pict(a,b,path):
-    plt.rcParams.update({'font.size': 14})
+    plt.rcParams.update({'font.size': 16})
     plt.ylim((0.0,1.10))
     total_width, n = 0.3, 2
     width = total_width / n

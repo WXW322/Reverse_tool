@@ -10,15 +10,17 @@ class format:
         """
         self.name = name
 
-    def get_symbols(self, sourcedatas):
+    def get_symbols(self, sourcedatas, names):
         """
         convert a dict datas to a symbol
         sourcedatas: a list of source data
         sourcedata: a tulple, the previous element reprensents the type and the last represents the value 
         """
         f_totals = []
-        for data in sourcedatas:
-            f_totals.append(self.get_singlesymbol(data))
+        i = 0
+        while(i < len(sourcedatas)):
+            f_totals.append(self.get_singlesymbol(sourcedatas[i], names[i]))
+            i = i + 1
         return f_totals
 
     def data2f(self, data):
@@ -34,7 +36,7 @@ class format:
             return Field(name = data[1], domain = BitArray(nbBits = (start, end)))
     
     
-    def get_singlesymbol(self, sourcedatas):
+    def get_singlesymbol(self, sourcedatas, name):
         """
         convert a dict datas to a symbol
         sourcedatas: a list of source data
@@ -43,6 +45,6 @@ class format:
         f_totals = []
         for data in sourcedatas:
             f_totals.append(self.data2f(data))
-        return Symbol(f_totals)
+        return Symbol(f_totals, name=name)
             
 

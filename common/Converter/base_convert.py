@@ -4,6 +4,7 @@ from Config.ve_strategy import ve_strategy
 import sys
 from sklearn.feature_extraction.text import CountVectorizer
 from Data_base.Data_redis.redis_deal import redis_convert
+import math
 
 class Converter:
     def __init__(self):
@@ -70,7 +71,7 @@ class Converter:
         t_dics: dict words and its frequent
         """
         t_inputs = [self.ConvertRawToLengthTexts(messages)]
-        length = ve_strategy().vote_parameters['height']
+        length = ve_strategy().vote_parameters['height'] + 1
         vetorizer = CountVectorizer(ngram_range=(1, length), stop_words=[' ', '.'], token_pattern='(?u)\\b\\w\\w*\\b')
         X = vetorizer.fit_transform(t_inputs)
         t_arrays = np.squeeze(X.toarray())
@@ -84,13 +85,15 @@ class Converter:
         t_dics = self.filter_words(t_dics)
         self.words_table = t_dics
         prefix = ve_strategy().GetWordsKeys('RawWords')
-        redis_convert.insert_to_redis(prefix, t_dics)
+        if not redis_convert.is_exist_key(prefix):
+            redis_convert.insert_to_redis(prefix, t_dics)
         return t_dics
 
     def convert_text_to_raw(self, phrase):
         pass
 
-    def convert_raw_to_count(self, datas):
+    @staticmethod
+    def convert_raw_to_count(datas):
         r_wordnum = {}
         for data in datas:
             if data in r_wordnum:
@@ -98,6 +101,33 @@ class Converter:
             else:
                 r_wordnum[data] = 1
         return r_wordnum
+
+    @staticmethod
+    def caculate_prob(vector):
+        t_r = {}
+        for v in vector:
+            if v not in t_r:
+                t_r[v] = 1
+            else:
+                t_r[v] = t_r[v] + 1
+        for key in t_r:
+            t_r[key] = t_r[key] / len(vector)
+        return t_r
+
+    @staticmethod
+    def huxinxi(vectorone, vectortwo, vectorthree):
+        vectorthree = []
+        t_probone = Converter.caculate_prob(vectorone)
+        t_probtwo = Converter.caculate_prob(vectortwo)
+        t_probsum = Converter.caculate_prob(vectorthree)
+        t_info = 0
+        for key_one in t_probone:
+            for key_two in t_probtwo:
+                if key_one + key_two not in t_probsum:
+                    continue
+                t_info = t_info + t_probsum[key_one + key_two] * np.log(
+                    t_probsum[key_one + key_two] / (t_probone[key_one] * t_probtwo[key_two]))
+        return t_info
 
     def ConvertRawToNormalFrequent(self, RawDicts, nrange):
         """
@@ -123,6 +153,7 @@ class Converter:
             t_frer[key] = -np.log(RawDicts[key] / t_fredic[len(key.split(' '))])
             t_biaozhun[len(key.split(' '))].append(t_frer[key])
         for i in range(1,nrange + 1):
+            print(i, len(t_biaozhun[i]))
             t_mean[i] = np.mean(np.array(t_biaozhun[i]))
             t_std[i] = np.std(np.array(t_biaozhun[i]),ddof = 1)
         for key in RawDicts:
@@ -154,14 +185,34 @@ class Converter:
             tempBorder = Converter().MergeLists(ListsA[i], ListsB[i])
             MergeBorders.append(tempBorder)
         return MergeBorders
+    """
+    Convert byte to int
+    """
+    @staticmethod
+    def byteToBigInt(data):
+        return int.from_bytes(data, byteorder='big', signed=False)
+
+    @staticmethod
+    def byteToLittle(data):
+        return int.from_bytes(data, byteorder='little', signed=False)
+
+    @staticmethod
+    def bytesToBigInt(datas):
+        return [Converter.byteToBigInt(data) for data in datas]
+
+    @staticmethod
+    def bytesToLittleInt(datas):
+        return [Converter.byteToLittle(data) for data in datas]
+
 
 
 word_converter = Converter()
 
 if __name__ == '__main__':
-    redis_cc = redis_deal()
-    sys.exit()
     counter = Converter()
+    #raw_keys = ve_strategy().GetWordsKeys('RawWords')
+    #raw_words = redis_convert.read_from_redis(raw_keys)
+    #frequent_words = Converter().ConvertRawToNormalFrequent(raw_words, ve_strategy().vote_parameters['height'] + 1)
     datas = read_datas('/home/wxw/data/iec104', 'single')
     datas = get_puredatas(datas)
     counter.ConvertRawToDict(datas)

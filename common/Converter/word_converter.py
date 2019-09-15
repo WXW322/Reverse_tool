@@ -1,8 +1,8 @@
+import sys
 from common.Converter.base_convert import Converter
 from common.analyzer.analyzer_common import base_analyzer
 from Data_base.Data_redis.redis_deal import redis_deal
 from common.ranker import ranker
-import sys
 import time
 import numpy as np
 from Config.ve_strategy import ve_strategy
@@ -107,6 +107,7 @@ class word_convert(Converter):
                 OrderWords[i] = self.ConvertWordToNumOrder([word[0] for word in num_words[i]], PrimeWords, rawwords)
             else:
                 OrderWords[i] = Converter.convert_word_order([word[0] for word in num_words[i]], PrimeWords)
+        OrderWords = self.convert_order_to_raw(OrderWords)
         return OrderWords
         #DataWriter = redis_deal()
         #DataWriter.insert_to_redis('order_raw_words', OrderWords)
@@ -179,12 +180,15 @@ class word_convert(Converter):
 if __name__ == '__main__':
     redis_read = redis_deal()
     word_converter = word_convert()
-    prefix = ve_strategy().GetWordsKeys('raw_words')
-    RawWords = redis_read.read_from_redis(prefix)
-    OrderWords = word_converter.convert_raw_word_to_order(RawWords)
+    prefix = ve_strategy().GetWordsKeys('OrderWords')
+    OrderWords = redis_read.read_from_redis(prefix)
     OrderWords = word_converter.convert_order_to_raw(OrderWords)
-    OrderPrefix = ve_strategy().GetWordsKeys('OrderWords')
-    redis_read.insert_to_redis(OrderPrefix, OrderWords)
+    redis_read.insert_to_redis(prefix, OrderWords)
+    print(word_converter.splitwords_bylen(OrderWords, 4)[1])
+    #OrderWords = word_converter.convert_raw_word_to_order(RawWords)
+    #OrderWords = word_converter.convert_order_to_raw(OrderWords)
+    #OrderPrefix = ve_strategy().GetWordsKeys('OrderWords')
+    #redis_read.insert_to_redis(OrderPrefix, OrderWords)
     #entry_words = word_converter.convert_raw_to_entry(raw_words, 5)
     #prefix = ve_strategy().get_strategy_str()
     #redis_read.insert_to_redis('{}_normal_entry_words'.format(prefix), entry_words)

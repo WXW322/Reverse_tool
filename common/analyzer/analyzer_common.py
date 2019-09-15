@@ -2,6 +2,7 @@ from Data_base.Data_redis.redis_deal import redis_deal
 import numpy as np
 import sys
 from sklearn.feature_extraction.text import CountVectorizer
+import math
 
 redis_read = redis_deal()
 class base_analyzer:
@@ -54,7 +55,8 @@ class base_analyzer:
         t_result = sorted(t_result.items(), key = lambda key:key[1], reverse=True)
         return t_result
 
-    def get_enrty(self, t_datas):
+    @staticmethod
+    def get_entry(t_datas):
         r_entry = 0
         for data in t_datas:
             r_entry = r_entry + data * np.log2(data)
@@ -102,6 +104,25 @@ class base_analyzer:
         #print("pre:",pre)
         #print("recall:",recall)
         #print("f1:",f1)
+
+    @staticmethod
+    def pearson(vector1, vector2):
+        n = len(vector1)
+        # simple sums
+        sum1 = sum(float(vector1[i]) for i in range(n))
+        sum2 = sum(float(vector2[i]) for i in range(n))
+        # sum up the squares
+        sum1_pow = sum([pow(v, 2.0) for v in vector1])
+        sum2_pow = sum([pow(v, 2.0) for v in vector2])
+        # sum up the products
+        p_sum = sum([vector1[i] * vector2[i] for i in range(n)])
+        # 分子num，分母den
+        num = p_sum - (sum1 * sum2 / n)
+        den = math.sqrt((sum1_pow - pow(sum1, 2) / n) * (sum2_pow - pow(sum2, 2) / n))
+        if den == 0:
+            return 0.0
+        return num / den
+
 
 
 

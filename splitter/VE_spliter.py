@@ -47,9 +47,10 @@ class splitter:
         if self.redis_read.is_exist_key(keys):
             entry_words = self.redis_read.read_from_redis(keys)
         else:
-            raw_keys = ve_strategy().GetWordsKeys("raw_words")
+            raw_keys = ve_strategy().GetWordsKeys("RawWords")
             raw_words = self.redis_read.read_from_redis(raw_keys)
             entry_words = word_convert().convert_raw_to_entry(raw_words, self.parameters['height'] + 1)
+            self.redis_read.insert_to_redis(keys, entry_words)
         entry_voter = Entry_voter(entry_words)
         PrimBorders = entry_voter.vote_for_messages(messages, self.parameters['height'])
         print(PrimBorders[0])
@@ -70,9 +71,10 @@ class splitter:
         if self.redis_read.is_exist_key(prefix):
             frequent_words = self.redis_read.read_from_redis(prefix)
         else:
-            raw_keys = ve_strategy().GetWordsKeys('raw_words')
+            raw_keys = ve_strategy().GetWordsKeys('RawWords')
             raw_words = self.redis_read.read_from_redis(raw_keys)
             frequent_words = Converter().ConvertRawToNormalFrequent(raw_words, self.parameters['height'] + 1)
+            self.redis_read.insert_to_redis(prefix, frequent_words)
         frequent_voter = frequence_voter(frequent_words)
         PrimBorders = frequent_voter.vote_for_messages(messages, self.parameters['height'])
         FinalBorders = Desiner().VoteMultiM(PrimBorders, self.parameters['diff_measure'],
@@ -85,9 +87,10 @@ class splitter:
         if self.redis_read.is_exist_key(key):
             OrderWords = self.redis_read.read_from_redis(key)
         else:
-            raw_keys = ve_strategy().GetWordsKeys('raw_words')
+            raw_keys = ve_strategy().GetWordsKeys('RawWords')
             raw_words = self.redis_read.read_from_redis(raw_keys)
-            OrderWords = word_convert().ConvertWordToNumOrder(raw_words, self.parameters['height'] + 1)
+            OrderWords = word_convert().ConvertRawWordsToOrder(raw_words, self.parameters['height'] + 1)
+            self.redis_read.insert_to_redis(key, OrderWords)
         orderVoter = OrderVoter(OrderWords)
         PrimBorders = orderVoter.vote_for_messages(messages, self.parameters['height'])
         FinalBorders = Desiner().VoteMultiM(PrimBorders, self.parameters['diff_measure'],

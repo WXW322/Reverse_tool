@@ -1,7 +1,4 @@
 from netzob.all import *
-import sys
-sys.path.append('../common/Model/')
-import format
 from collections import OrderedDict
 
 class StateLine:

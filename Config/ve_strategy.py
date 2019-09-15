@@ -14,7 +14,8 @@ class ve_strategy:
         self.vote_parameters['Threshold_max'] = 3
         self.protocol = 'modbus_one'
         self.vote_parameters['stop_words'] = 'x'
-        self.path = ["/home/wxw/data/iec104"]
+        self.path = ['/home/wxw/data/iec104']
+        #self.path = ["/home/wxw/data/iec10"]
 
     def get_strategy_str(self):
         str_final =  self.protocol + '_' + self.vote_parameters['voters'] + '_' + self.vote_parameters['diff_measure'] + '_' \

@@ -1,5 +1,5 @@
-from Mtree import *
-from Node import *
+from Inference.Mtree import *
+from Inference.Node import *
 
 def test_Mtree():
     t_ids = []

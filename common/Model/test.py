@@ -1,10 +1,7 @@
 from netzob.all import *
-import format
-import sys
-sys.path.append('../../StateM/')
-sys.path.append('../')
-import Stateline
-import readdata
+import common.Model.format
+import StateM.Stateline
+import common.readdata
 
 def test_normal():
     f1 = Field(name = "f1", domain = "111")

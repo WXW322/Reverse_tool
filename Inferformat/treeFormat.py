@@ -1,33 +1,31 @@
 from Inferformat.treef import *
 from Inferformat.node import *
-from common.Model.canf import *
+from common.Model.PrimData import primeData
 
-class treefL(treef):
+class treeFormat(treef):
     def __init__(self, datas, T_c, T_r):
-        super(treefL, self).__init__(datas)
+        super(treeFormat, self).__init__(datas)
         self.R = T_r
         self.C = T_c
 
     def generate_T(self):
         t_ids = []
-        for id in self.datas:
-            t_ids.append(id)
         self.tree = node()
-        self.tree.children = self.generate_node(t_ids)
+        self.tree.children = self.generate_node(self.datas)
         return self.tree
 
-    def generate_node(self, n_data):
+    def generate_node(self, datas):
         t_r = []
-        t_start = n_data[0].now()
+        t_start = datas[0].now()
         t_num = {}
-        for data in n_data:
-            nextLoc = data.nextLoc()
-            if nextLoc not in t_num:
-                t_num[nextLoc] = []
-            t_num[nextLoc].append(data)
+        for data in datas:
+            t_next = data.nextLoc()
+            if t_next not in t_num:
+                t_num[t_next] = []
+            t_num[t_next].append(data)
         t_v = []
         for key in t_num:
-            if float(len(t_num[key])) / float(len(n_data)) >= self.R and len(t_num[key]) >= self.C:
+            if float(len(t_num[key])) / float(len(datas)) >= self.R and len(t_num[key]) >= self.C:
                 t_node = node((t_start, key), t_num[key])
                 if t_start != key:
                     t_node.children = t_node.children + self.generate_node(t_num[key])
@@ -38,9 +36,3 @@ class treefL(treef):
             t_node = node((t_start, -1), t_v)
             t_r.append(t_node)
         return t_r
-
-
-
-
-
-

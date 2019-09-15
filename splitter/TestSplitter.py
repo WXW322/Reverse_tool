@@ -1,8 +1,10 @@
 from splitter.VE_spliter import splitter
 from common.measure_tool.MessaSplitMeasure import MessageSplitMeasure
 from Config.modbus import modbus
+from Config.iec104 import iec104
 from common.readdata import *
 import sys
+import time
 
 def FrequentTest(Messages):
     vespliter = splitter()
@@ -41,11 +43,15 @@ def OrderMergeTest(Messages, VoterA, VoterB):
 
 
 if __name__ == '__main__':
-    raw_messages = read_multity_dirs(["/home/wxw/data/modbusdata", "/home/wxw/data/modbusgithub"])
+    raw_messages = read_multity_dirs(["/home/wxw/data/iec104"])
     pure_datas = get_puredatas(raw_messages)
     #EntryTest(pure_datas)
     #FrequentTest(pure_datas)
+    StartTime = time.time()
+    OrderMergeTest(pure_datas, 'order', 'entry')
     #OrderTest(pure_datas)
-    OrderMergeTest(pure_datas, 'frequent', 'entry')
+    EndTime = time.time()
+    print(EndTime - StartTime)
+    #OrderMergeTest(pure_datas, 'frequent', 'entry')
 
 

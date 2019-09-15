@@ -2,8 +2,6 @@ import json
 import sys
 import redis
 from Config.ve_strategy import ve_strategy
-from common.Converter.base_convert import Converter
-from common.measure_tool.MeasureAb import MeasureAb
 
 class redis_deal:
     def __init__(self, host = 'localhost', port = '6379'):
@@ -32,7 +30,11 @@ redis_convert = redis_deal()
 
 if __name__ == '__main__':
     redis_dealer = redis_deal()
-    #prefix = ve_strategy().GetWordsKeys("EntryWords")
+    prefix = ve_strategy().GetWordsKeys("OrderWords")
+    Iec104 = redis_dealer.read_from_redis(prefix)
+    print(Iec104)
+    #NewPrefix = ve_strategy().GetWordsKeys('RawWords')
+    #redis_dealer.insert_to_redis(NewPrefix, ModbusData)
     #FrequentWordsPrim = redis_dealer.read_from_redis('modbus_one_frequent_voter_abs_normal_0_0_normal_entry_words')
     #rawWordsSecond = redis_dealer.read_from_redis(prefix);
     #redis_dealer.insert_to_redis(prefix, FrequentWordsPrim)
