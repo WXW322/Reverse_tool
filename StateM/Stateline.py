@@ -1,5 +1,6 @@
 from netzob.all import *
 from collections import OrderedDict
+import re
 
 class StateLine:
     def __init__(self, symbols, name = 'line'):
@@ -27,6 +28,16 @@ class StateLine:
             Sym_r.append(self.mes2sym(data))
         self.Symbol_result = Sym_r
         return Sym_r
+
+    def mes2SymName(self, datas):
+        Results = self.messages2sym(datas)
+        stateList = []
+        for result in Results:
+            if re.match('Unknown Symbol', result[0].name):
+                stateList.append('Unknown Symbol')
+            else:
+                stateList.append(result[0].name)
+        return stateList
 
 
 

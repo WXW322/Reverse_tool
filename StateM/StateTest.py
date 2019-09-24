@@ -3,6 +3,8 @@ from common.Model.format import format
 from StateM.Stateline import StateLine
 from common.readdata import *
 from StateM.StateGenerator import StateGenerator
+from StateM.StateCompare import StateCompare
+from StateM.StateSplit import StateSplit
 import re
 import sys
 
@@ -50,26 +52,39 @@ def testState(path):
     t_datas = get_puredatas(t_datas)
     symbols = test_f()
     State = StateLine(symbols)
-    Results = State.messages2sym(t_datas)
-    stateList = []
-    for result in Results:
-        if re.match('Unknown Symbol', result[0].name):
-            stateList.append('Unknown Symbol')
-        else:
-            stateList.append(result[0].name)
+    stateList = State.mes2SymName(t_datas)
     for s in stateList:
         print(s)
     return stateList
 
+def getSessions(path):
+    stateSplit = StateSplit()
+    t_datas = read_datas(path)[0:20]
+    datasSplit = stateSplit.splitByDire(t_datas)
+    symbols = test_f()
+    State = StateLine(symbols)
+    tSessions = []
+    for dataSplit in datasSplit:
+        tSessions.append(State.mes2SymName(dataSplit))
+        print(tSessions[0])
+    return tSessions
+
+
+
 if __name__ == '__main__':
-    symbolNames = testState('/home/wxw/data/http/httpSplitOne')
+    symbolNames = getSessions('/home/wxw/data/http/httpSplitOne')
     tNames = set()
-    for name in symbolNames:
-        if name not in tNames:
-            tNames.add(name)
-    print(tNames)
+    for names in symbolNames:
+        for name in names:
+            if name not in tNames:
+                tNames.add(name)
     stateGenerators = StateGenerator(tNames)
-    stateGenerators.graphGenerator(symbolNames)
-    stateGenerators.graphShow()
+    for names in symbolNames:
+        stateGenerators.graphGenerator(names)
+    #stateGenerators.graphShow()
+    links = stateGenerators.getLinkHase()
+    writeLinks = {'Unknown Symbol RESPONSE', 'POST Unknown Symbol'}
+    stateCom = StateCompare()
+    print(stateCom.comPareStates(links, writeLinks))
 
 

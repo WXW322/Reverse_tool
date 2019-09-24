@@ -94,16 +94,6 @@ class base_analyzer:
         if pre + recall != 0:
             f1 = 2*pre*recall/(pre + recall)
         return (pre,recall,f1)
-        #print("conb:",self.conborders)
-        #print("rb:",self.rborders)
-        #print("To;",T_boders)
-        #print("tp:",tpborders)
-        #print("fn:",tnborders)
-        #print("fp:",fpborders)
-        #print("tn:",tnborders)
-        #print("pre:",pre)
-        #print("recall:",recall)
-        #print("f1:",f1)
 
     @staticmethod
     def pearson(vector1, vector2):
@@ -123,6 +113,10 @@ class base_analyzer:
             return 0.0
         return num / den
 
+    @staticmethod
+    def getSetDis(setA, setB):
+        return len(setA & setB) / len(setA | setB)
+
 
 
 
@@ -134,13 +128,18 @@ class base_analyzer:
 
 
 if __name__ == '__main__':
+
+    sA = {1, 2, 3}
+    sB = {1, 2, 4}
+    print(base_analyzer.getSetDis(sA, sB))
+    '''
     analyzer = base_analyzer()
     sentence = ['1 2 1 2 3']
     vec = CountVectorizer(min_df=1, ngram_range=(1,2), stop_words=[' ','.'],token_pattern='(?u)\\b\\w\\w*\\b')
     x = vec.fit_transform(sentence)
     print(vec.get_feature_names())
     print(x.toarray())
-
+    '''
     #words_normal = redis_read.read_from_redis('modbus_frequent_voter_abs_normal_0_0normal_correct_words')
     #analyzer.vote_item(['0', '83', '255', '4'], words_normal)
     #words_normal = redis_read.read_from_redis('modbus_frequent_voter_abs_normal_0_0correct_raw_words')

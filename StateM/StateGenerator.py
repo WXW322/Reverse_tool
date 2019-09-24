@@ -23,3 +23,11 @@ class StateGenerator:
             for subName in self.symbols[name]:
                 print('%s ,'%(subName), end='')
             print('')
+
+    def getLinkHase(self):
+        links = set()
+        for firstName in self.symbols:
+            for secondName in self.symbols[firstName]:
+                nameHash = '%s %s'%(firstName, secondName)
+                links.add(nameHash)
+        return links
