@@ -1,3 +1,5 @@
+
+
 from sklearn.feature_extraction.text import CountVectorizer
 import re
 from common.readdata import *
@@ -120,7 +122,3 @@ if __name__ == '__main__':
     datas = read_datas('/home/wxw/data/http_test', 'single')
     datas = get_puredatas(datas)
     print(getDelimiter(datas))
-
-
-
-

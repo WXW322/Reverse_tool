@@ -1,13 +1,10 @@
-"""
-This class is mainly for split text messages.
-Give it message data and delimiter, it will
-return the split results. 
-"""
 
 import sys
 from netzob.all import *
 from common.readdata import *
-class textparser:
+from textops.Model.TextModel import TextModel
+
+class TextParseLogic:
     def __init__(self):
         self.name = 'parser'
 
@@ -20,15 +17,19 @@ class textparser:
         result = symbol.getCells()
         return result
 
-    def teststates(self):
-        pass
+    def ConvertDataToMessage(self, messages, delimeter):
+        textDatas = []
+        splitDatas = self.split(messages, delimeter)
+        i = 0
+        while(i < len(messages)):
+            textModel = TextModel(messages[i], splitDatas[i], i)
+            textDatas.append(textModel)
+            i = i + 1
+        return textDatas
+
 
 if __name__ == '__main__':
-    message_parser = textparser()
+    message_parser = TextParseLogic()
     messages = read_datas('/home/wxw/data/http_small', 'single')
-    print(len(messages))
     messages = get_puredatas(messages)
-    message_parser.split(messages, '\r\n')
-
-
-
+    #print(message_parser.ConvertDataToMessage(messages, '\r\n'))
