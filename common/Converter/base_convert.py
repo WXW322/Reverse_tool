@@ -89,6 +89,18 @@ class Converter:
             redis_convert.insert_to_redis(prefix, t_dics)
         return t_dics
 
+    def ConvertTextToCount(self, message, h):
+        fResult = set()
+        i = 0
+        while(i <= len(message) - h):
+            j = i + 1
+            while(j < i + h):
+                if message[i:j] not in fResult:
+                    fResult.add(message[i:j])
+                j = j + 1
+            i = i + 1
+        return fResult
+
     def convert_text_to_raw(self, phrase):
         pass
 
@@ -203,6 +215,23 @@ class Converter:
     @staticmethod
     def bytesToLittleInt(datas):
         return [Converter.byteToLittle(data) for data in datas]
+
+    def MergeDicts(self, dicOne, dicTwo):
+        for key in dicOne:
+            if key not in dicTwo:
+                dicTwo[key] = dicOne[key]
+            else:
+                dicTwo[key] = dicTwo[key] + dicOne[key]
+
+    def ConvertListToCnt(self, datas, h):
+        fDics = {}
+        for data in datas:
+            tempCnt = self.ConvertTextToCount(data, h)
+            for key in tempCnt:
+                if key not in fDics:
+                    fDics[key] = 0
+                fDics[key] = fDics[key] + 1
+        return fDics
 
 
 

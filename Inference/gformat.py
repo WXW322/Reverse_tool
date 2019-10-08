@@ -4,14 +4,14 @@ import numpy as np
 import sys
 import time
 from ngrambuild.pyngram import voters
-import Config.f_cg
 from classer.parse import parse
 from common.readdata import *
-from Inference.words_deal import message_dealer
 from common.output import R_out
 import time
 from Inferformat.treef_loc import treefL
 from Inferformat.node import node
+from common.f_cg import transer
+from Inference.words_deal import message_dealer
 
 class gformat:
     def __init__(self):
@@ -49,8 +49,6 @@ class gformat:
     def get_formats(self,messages,rules,clus,h,ways,combine,model,v_way,T=0,r=0):
         t_data = None
         paser = parse()
-        transe = f_cg.transer()
-        messager = word_deal.message_dealer()
         t_formats = {}
         if rules == "lo":
             t_data,_ = paser.cls_fun(messages,clus[0],clus[1])
@@ -71,7 +69,7 @@ def get_f(T_path,data_path,r_way,rules,clus,h,ways,combine,model,v_way,T,r):
     datas_src = get_puredatas(datas_src)
     datas_des = get_puredatas(datas_des)
     f_name = "tempone" + str(h) + ways + combine + model + v_way + str(T) + str(r) + ".txt" 
-    out_f = output.R_out()
+    out_f = R_out()
     out_f.set_path(T_path,f_name)
     out_f.trans_out()
     g_f = gformat()
@@ -90,15 +88,15 @@ def get_common(T_path,data_path,r_way,h,ways,combine,model,v_way,T,r,R_los):
     datas = get_puredatas(datas)
     messages = add_tail(datas,h)
     f_name = str(h) + ways + combine + model + v_way + str(T) + str(r) +str(time.time()) + ".txt" 
-    out_f = output.R_out()
+    out_f = R_out()
     out_f.set_path(T_path,f_name)
     out_f.trans_out()
     print(h,ways,combine,model,v_way,T,r)
     g_f = gformat()
     t_f = g_f.get_format(datas,h,ways,combine,model,v_way,T,r)
-    f_trans = f_cg.transer()
+    f_trans = transer()
     borders_pre = f_trans.border2item(t_f)
-    M_dealer = word_deal.message_dealer()
+    M_dealer = message_dealer()
     M_dealer.set_conlo(borders_pre)
     M_dealer.set_rlo(R_los)
     M_dealer.get_f1()

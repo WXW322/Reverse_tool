@@ -11,11 +11,8 @@ class TextParseLogic:
     def split(self, messages, delimiter):
         t_messages = []
         for message in messages:
-            t_messages.append(RawMessage(data=message))
-        symbol = Symbol(messages=t_messages)
-        Format.splitDelimiter(symbol, ASCII(delimiter))
-        result = symbol.getCells()
-        return result
+            t_messages.append(message.split(delimiter))
+        return t_messages
 
     def ConvertDataToMessage(self, messages, delimeter):
         textDatas = []
@@ -32,4 +29,4 @@ if __name__ == '__main__':
     message_parser = TextParseLogic()
     messages = read_datas('/home/wxw/data/http_small', 'single')
     messages = get_puredatas(messages)
-    #print(message_parser.ConvertDataToMessage(messages, '\r\n'))
+    print(message_parser.ConvertDataToMessage(messages, b'\r\n'))

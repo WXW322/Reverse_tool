@@ -1,6 +1,7 @@
 
 from common.analyzer.BaseFreAnalyZer import BaseFreAnalyZer
 import sys
+import time
 
 class ApriorFreAnalyZer(BaseFreAnalyZer):
     def __init__(self, texts, supportRate):
@@ -79,7 +80,13 @@ class ApriorFreAnalyZer(BaseFreAnalyZer):
         tempTextSet = self.genInitSet()
         self.updateSet(self.filterSeByCnt(list(tempTextSet)))
         while(True):
-            nowSe = self.filterSeByCnt(self.genStr())
+            startTime = time.time()
+            newDatas = self.genStr()
+            endTime = time.time()
+            print('The generate time is %d %s'%(len(newDatas), str(endTime - startTime)))
+            nowSe = self.filterSeByCnt(newDatas)
+            endTime = time.time()
+            print('The filter time is %d %s' % (len(nowSe), str(endTime - startTime)))
             if(len(nowSe) == 0):
                 break
             else:
