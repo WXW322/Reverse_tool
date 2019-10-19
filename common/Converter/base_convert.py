@@ -233,7 +233,21 @@ class Converter:
                 fDics[key] = fDics[key] + 1
         return fDics
 
+    def ConvertMultiList(self, Datas):
+        for data in Datas:
+            if isinstance(data, list):
+                yield self.ConvertMultiList(data)
+            else:
+                yield Datas
+                break
 
+    def ConvertMultiListPure(self, Datas, finalResult):
+        for data in Datas:
+            if isinstance(data, list):
+                self.ConvertMultiListPure(data, finalResult)
+            else:
+                finalResult.append(Datas)
+                break
 
 word_converter = Converter()
 

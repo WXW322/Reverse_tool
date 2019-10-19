@@ -6,11 +6,11 @@ import sys
 from Inference.words_basic import words_base
 import numpy as np
 from common.f_cg import transer
-from deal_data.session_deal import
+from deal_data.session_deal import session_deal
 from common.readdata import *
 from common.Converter.base_convert import Converter
 from common.Converter.MessageConvert import MessageConvert
-from common.analyzer.analyzer_common import analyzer
+from common.analyzer.analyzer_common import base_analyzer
 
 class message_dealer:
     def __init__(self):
@@ -115,8 +115,8 @@ class message_dealer:
     def findserienum(self, datas, t_series):
         t_lener = words_base()
         t_dataone, t_datatwo = t_lener.get_seidinfo(datas)
-        j_one = analyzer.pearson(t_dataone, t_series)
-        j_two = analyzer.pearson(t_datatwo, t_series)
+        j_one = base_analyzer.pearson(t_dataone, t_series)
+        j_two = base_analyzer.pearson(t_datatwo, t_series)
         j_final = max(j_one, j_two)
         return j_final
 
@@ -139,7 +139,7 @@ class message_dealer:
         :return: entry and distinct num of datas
         """
         t_l = Converter.convert_raw_to_count(datas)
-        t_en = analyzer.get_entry([value for value in t_l.values()])
+        t_en = base_analyzer.get_entry([value for value in t_l.values()])
         return t_en,len(t_l)
 
     def findFuncRe(self,t_idoms,h_len,T=0,data="no"):
@@ -180,7 +180,7 @@ class message_dealer:
             return -1
         itomLen = len(datas[0])
         TC = 255 * itomLen
-        TE = analyzer.get_entry([1.0 / num for num in range(TC)])
+        TE = base_analyzer.get_entry([1.0 / num for num in range(TC)])
         dataE, dataC = self.find_constfunc(datas)
         fValue = (1 - dataC / TC) * (1 - dataE / TE) * (1 - startLo / self.MaxLen)
         return fValue

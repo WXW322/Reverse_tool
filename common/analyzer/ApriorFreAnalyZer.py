@@ -11,12 +11,12 @@ class ApriorFreAnalyZer(BaseFreAnalyZer):
         self.freTexts = []
 
     def genStr(self):
-        seNew = []
-        for i in range(0, len(self.freTexts) - 1):
-            for j in range(i, len(self.freTexts)):
+        seNew = set()
+        for i in range(0, len(self.freTexts)):
+            for j in range(0, len(self.freTexts)):
                 textNew = self.freTexts[i] + self.freTexts[j]
-                if textNew not in self.freTextSet:
-                    seNew.append(textNew)
+                if textNew not in self.freTextSet and textNew not in seNew:
+                    seNew.add(textNew)
         return seNew
 
     def genInitSingle(self):
@@ -56,9 +56,9 @@ class ApriorFreAnalyZer(BaseFreAnalyZer):
         tempSet = set()
         for se in sequences:
             tempSupport = self.getTextCnt(se)
-            # print(se, tempSupport)
             if tempSupport / len(self.texts) >= self.support and se not in tempSet:
                 tempSet.add(se)
+        #print(tempSet)
         return tempSet
 
 
@@ -83,7 +83,7 @@ class ApriorFreAnalyZer(BaseFreAnalyZer):
             startTime = time.time()
             newDatas = self.genStr()
             endTime = time.time()
-            print('The generate time is %d %s'%(len(newDatas), str(endTime - startTime)))
+            print('The generate time is %d %d %s'%(len(self.freTexts), len(newDatas), str(endTime - startTime)))
             nowSe = self.filterSeByCnt(newDatas)
             endTime = time.time()
             print('The filter time is %d %s' % (len(nowSe), str(endTime - startTime)))
@@ -91,6 +91,8 @@ class ApriorFreAnalyZer(BaseFreAnalyZer):
                 break
             else:
                 self.updateSet(nowSe)
+            if len(self.freTextSet) >1500:
+                break
         self.filterShort()
         return self.freTextSet
 

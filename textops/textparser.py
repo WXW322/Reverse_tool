@@ -8,6 +8,7 @@ import sys
 from netzob.all import *
 from common.readdata import *
 import time
+import functools
 
 class textparser:
     def __init__(self):
@@ -26,15 +27,28 @@ class textparser:
     def teststates(self):
         pass
 
-if __name__ == '__main__':
-    startTime = time.time()
-    message_parser = textparser()
-    messages = read_datas('/home/wxw/data/http_measure', 'single')
-    messages = get_puredatas(messages)
-    print(len(messages))
-    message_parser.split(messages, '\r\n')
-    endTime = time.time()
-    print(endTime - startTime)
+def compare_now(s1, s2):
+    if s1[0] < s2[0]:
+        return 1
+    elif s1[0] > s2[0]:
+        return -1
+    else:
+        if s1[1] > s2[1]:
+            return 1
+        elif s1[1] < s2[1]:
+            return -1
+        else:
+            return 0
 
+def addNum(L, time):
+    if time != 0:
+        addNum(L, time-1)
+    L.append(time)
+
+
+if __name__ == '__main__':
+    L = []
+    addNum(L, 10)
+    print(L)
 
 
