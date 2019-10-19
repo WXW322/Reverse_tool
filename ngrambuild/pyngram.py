@@ -8,15 +8,19 @@ import os
 import sys
 import json
 import time
-sys.path.append('../common')
-sys.path.append('../log_info/')
-from logger import get_logger
-import readdata
-from ve_strategy import  ve_strategy
+from log_info.logger import get_logger, vote_pre
+import common.readdata
+from Config.ve_strategy import ve_strategy
+from Config.log_config import log_path
+from Data_base.Data_redis.redis_deal import redis_deal
+from Config.encode_types import Message_encoder
+from common.Converter.base_convert import Converter
 
-now_time = str(time.time())
-voter_logger = get_logger('../log_info/message_vote' + now_time, 'messagedetaillogger')
+now_time = time.strftime("%Y-%m-%d %H:%m:%s", time.localtime(time.time()))
+voter_logger = get_logger(log_path + '/message_vote' + vote_pre + now_time, 'messagedetaillogger')
 ve_parameter = ve_strategy().vote_parameters
+redis_writer = redis_deal()
+redis_prefix = ve_strategy().get_strategy_str()
  
 class voters:
     def __init__(self):
@@ -34,6 +38,37 @@ class voters:
         for key in keys:
             f_r[key] = self.query_key(key)
         return f_r
+
+    def get_single_message_with_h(self, message):
+        """
+                converse a message to n-gram item
+                message: a list o bytes
+                return : str of n-gram items
+                """
+        t_list = []
+        t_len = len(message)
+        i = 0
+        t_flist = ''
+        h = ve_parameter['height']
+        while (i < t_len):
+            if (len(t_flist) == 0):
+                if Message_encoder.encode_type == 'location_based':
+                    t_flist = t_flist + str(i) + '_' + str(message[i])
+                else:
+                    t_flist = t_flist + str(message[i])
+            else:
+                if Message_encoder.encode_type == 'location_based':
+                    t_flist = t_flist + ' ' + str(i) + '_' + str(message[i])
+                else:
+                    t_flist = t_flist + ' ' + str(message[i])
+            i = i + 1
+        i = 0
+        while(i < h):
+            t_flist = t_flist + ' ' + ve_parameter['stop_words']
+            i = i + 1
+        return t_flist
+
+
     def get_single_messages(self,message):
         """
         converse a message to n-gram item
@@ -46,9 +81,15 @@ class voters:
         t_flist = ''
         while(i < t_len):
            if(len(t_flist) == 0):
-               t_flist = t_flist + str(message[i])
+               if Message_encoder.encode_type == 'location_based':
+                   t_flist = t_flist + str(i) + '_' + str(message[i])
+               else:
+                   t_flist = t_flist + str(message[i])
            else:
-               t_flist = t_flist + ' ' + str(message[i])
+               if Message_encoder.encode_type == 'location_based':
+                   t_flist = t_flist + ' ' + str(i) + '_' + str(message[i])
+               else:
+                   t_flist = t_flist + ' ' + str(message[i])
            i = i + 1
         return t_flist
 
@@ -67,11 +108,10 @@ class voters:
         """
         t_lists = ''
         for message in messages:
-            #printm(message)
             if(len(t_lists) == 0):
-                t_lists = t_lists + self.get_single_messages(message)
+                t_lists = t_lists + self.get_single_message_with_h(message)
             else:
-                t_lists = t_lists + '. ' + self.get_single_messages(message)
+                t_lists = t_lists + '. ' + self.get_single_message_with_h(message)
         return t_lists
 
     def get_splitsmessages(self,messages):
@@ -87,21 +127,27 @@ class voters:
         t_dics: dict words and its frequent
         """
         t_inputs = [self.get_messages(messages)]
-        #t_inputs = ["10 10 10 10 11"]
         vetorizer = CountVectorizer(ngram_range=(1,valuen),stop_words=[' ','.'],token_pattern='(?u)\\b\\w\\w*\\b')
         X = vetorizer.fit_transform(t_inputs)
-        #t_arrays = np.sum(X.toarray(),axis = 0)
         t_arrays = np.squeeze(X.toarray())
         words = vetorizer.get_feature_names()
         t_len = len(words)
         t_dics = {}
         i = 0
         while(i < t_len):
-            t_dics[words[i]] = t_arrays[i]
+            t_dics[words[i]] = int(str(t_arrays[i]))
             i = i + 1
         self.words_table = t_dics
-        return t_dics
+        #redis_writer.insert_to_redis('raw_words', t_dics)
+        return self.filter_words(t_dics)
 
+    def filter_words(self, t_dic):
+        stop_word = ve_parameter['stop_words']
+        t_words_new = {}
+        for key in t_dic:
+            if key.find(stop_word) == -1:
+                t_words_new[key] = t_dic[key]
+        return t_words_new
 
 
 
@@ -128,6 +174,7 @@ class voters:
         for key in t_dics:
             t_frer[key] = -np.log(t_dics[key] / t_fredic[len(key.split(' '))])
             t_biaozhun[len(key.split(' '))].append(t_frer[key])
+        #redis_writer.insert_to_redis('raw_frequent', t_frer)
         for i in range(1,nrange + 1):
             t_mean[i] = np.mean(np.array(t_biaozhun[i]))
             t_std[i] = np.std(np.array(t_biaozhun[i]),ddof = 1)
@@ -187,7 +234,7 @@ class voters:
                 t_entrys[key] = (t_entrys[key] - t_entrymean[len(key.split(' '))]) / (t_entrystd[len(key.split(' '))])
         return t_entrys
 
-    def s2key(self,ses):
+    def s2key(self, ses, start=None):
         """
         function:converse a data sequence to words
         ses: bytes sequences
@@ -195,13 +242,20 @@ class voters:
         """
         s_f = ""
         for s in ses:
-            if len(s_f) == 0:
-                s_f = s_f + str(s)
+            if start == None:
+                if len(s_f) == 0:
+                    s_f = s_f + str(s)
+                else:
+                    s_f = s_f + ' ' + str(s)
             else:
-                s_f = s_f + ' ' + str(s)
+                if len(s_f) == 0:
+                    s_f = str(start) + '_' + str(s)
+                else:
+                    s_f = s_f + ' ' + str(start) + '_' + str(s)
+                start = start + 1
         return s_f
 
-    def vote_item(self,itom_s,t_frer,t_entrys):
+    def vote_item(self,itom_s,t_frer,t_entrys, start=0):
         """
         function: get vote location of single item
         itom_s: bytes sequence
@@ -209,7 +263,6 @@ class voters:
         t_entrys:dict entry table
 
         """
-        t_lo = 0
         t_len = len(itom_s)
         i = 1
         t_min_fre = 100
@@ -233,6 +286,33 @@ class voters:
             i = i + 1
         return t_fre_lo,t_entry_lo
 
+    def order_item_vote(self, itom_s, order_words):
+        """
+        vote words by orders
+        :param itom_s:
+        :param order_words:
+        :return:
+        """
+        t_lo = 0
+        t_len = len(itom_s)
+        i = 1
+        t_min_order = 10000000
+        t_order_lo = -1
+        while (i <= t_len):
+            t_pre = self.s2key(itom_s[0:i])
+            if i < t_len:
+                t_last = self.s2key(itom_s[i:t_len])
+            else:
+                t_last = "300"
+            t_pre_order = order_words[t_pre]
+            t_last_order = order_words[t_last]
+            t_order_w = min(t_pre_order, t_last_order)
+            if t_order_w < t_min_order:
+                t_min_order = t_order_w
+                t_order_lo = i
+            i = i + 1
+        return t_order_lo
+
     def vote_sequence(self,sequence,win_L,t_frer,t_entrys):
         """
         get voting result of a sequence
@@ -248,9 +328,9 @@ class voters:
         f_entrys = {}
         while(i < t_len):
             if i < t_len - win_L:
-                t_fre,t_entry = self.vote_item(sequence[i:i+win_L],t_frer,t_entrys)
+                t_fre,t_entry = self.vote_item(sequence[i:i+win_L],t_frer,t_entrys, i)
             else:
-                t_fre,t_entry = self.vote_item(sequence[i:t_len],t_frer,t_entrys)
+                t_fre,t_entry = self.vote_item(sequence[i:t_len],t_frer,t_entrys, i)
             t_f_item = i + t_fre
             t_e_item = i + t_entry
             if t_f_item not in f_fres:
@@ -271,7 +351,37 @@ class voters:
             i = i + 1
         return f_fres,f_entrys
 
-    def vote_for_single_message(self,t_los, model, way,T = 0,r = 0):
+    def order_vote_sequence(self, sequence, win_L, order_words):
+        """
+        :param sequence:
+        :param win_L:
+        :param order_words:
+        :return:
+        """
+        t_len = len(sequence)
+        i = 0
+        f_orders = {}
+        while (i < t_len):
+            if i < t_len - win_L:
+                t_order = self.order_item_vote(sequence[i:i + win_L], order_words)
+            else:
+                t_order = self.order_item_vote(sequence[i:t_len], order_words)
+            order_item = i + t_order
+            if order_item not in f_orders:
+                f_orders[order_item] = 1
+            else:
+                f_orders[order_item] = f_orders[order_item] + 1
+            i = i + 1
+        i = 0
+        while (i < win_L):
+            if i in f_orders:
+                f_orders[i] = f_orders[i] * (win_L / i)
+            i = i + 1
+        return f_orders
+
+
+
+    def vote_for_single_message(self,t_los, diff_measure, way,T = 0,r = 0):
         """
         funtion: get final los for one messages
         t_los:vote locations(dict)
@@ -286,24 +396,24 @@ class voters:
             last_key = key + 1
             t_pre = 0 if pre_key not in t_los else t_los[pre_key]
             t_last = 0 if last_key not in t_los else t_los[last_key]
-            if model == "abs" and way == "normal":
+            if diff_measure == "abs" and way == "normal":
                 if t_now > T and t_now > t_pre and t_now > t_last:
                     t_flos.append(key)
-            elif model == "abs" and way == "loose":
+            elif diff_measure == "abs" and way == "loose":
                 if key != 1:
                     if t_now > T and ((t_now > t_pre) or (t_now > t_last)):
                         t_flos.append(key)
                 else:
                     if t_now > T and ((t_now > t_pre) and (t_now > t_last)):
                         t_flos.append(key)
-            elif model == "re" and way == "normal":
+            elif diff_measure == "re" and way == "normal":
                 if key != 1:
                     if t_now > T and (((t_pre == 0) or (t_now/t_pre > 1 + r)) and ((t_last == 0) or (t_now/t_last > 1 + r))):
                         t_flos.append(key)
                 else:
                     if t_now > T and ((t_last == 0) or (t_now/t_last > 1 + r)):
                         t_flos.append(key)
-            elif model == "re" and way == "loose":
+            elif diff_measure == "re" and way == "loose":
                 if key != 1:
                     if t_now > T and (((t_pre == 0) or (t_now/t_pre > 1 + r)) or ((t_last == 0) or (t_now/t_last > 1 + r))):
                         t_flos.append(key)
@@ -313,6 +423,7 @@ class voters:
             else:
                 print("error")
         return t_flos
+
 
 
 
@@ -435,38 +546,85 @@ class voters:
             los[length] = 1
         return los
 
-    def single_message_voter(self, messages, h, voters = "both", model = "abs", v_way = "normal", T=0, r=0):
-        t_dics = self.get_keywords(messages,h + 1)
-        t_fres = self.get_frequent(t_dics,h + 1)
-        t_fres["300"] = 0
+    def single_message_voter(self, messages, h, voters = "both", diff_measure = "abs", v_way = "normal", T=0, r=0):
+        h = ve_parameter['height']
+        voters = ve_parameter['voters']
+        diff_measure = ve_parameter['diff_measure']
+        v_way = ve_parameter['decision_type']
+        T = ve_parameter['Threshold_T']
+        r = ve_parameter['Threshod_R']
+        redis_raw_word_keys = redis_prefix + 'correct_raw_words'
+        if redis_writer.is_exist_key(redis_raw_word_keys):
+            t_dics = redis_writer.read_from_redis(redis_raw_word_keys)
+        else:
+            t_dics = self.get_keywords(messages,h + 1)
+            redis_writer.insert_to_redis(redis_prefix + 'correct_raw_words', t_dics)
+        redis_normal_word_key = redis_prefix + 'normal_correct_words'
+        if redis_writer.is_exist_key(redis_normal_word_key):
+            t_fres = redis_writer.read_from_redis(redis_normal_word_key)
+        else:
+            t_fres = self.get_frequent(t_dics,h + 1)
+            t_fres["300"] = 0
+            redis_writer.insert_to_redis(redis_prefix + 'normal_correct_words', t_fres)
         self.words_fre = t_fres
         t_entrys = self.get_backentry(t_dics,h + 1)
         self.words_entry = t_entrys
         self.words_table = t_dics
         f_boundaries = []
         voters = ve_parameter['voters']
-
+        raw_conv = Converter()
         for i in range(len(messages)):
             t_fre_r,t_entry_r = self.vote_sequence(messages[i],h,t_fres,t_entrys)
-            t_fre_r = self.filter_los(t_fre_r, int(len(messages[i]) - h))
-            t_entry_r = self.filter_los(t_entry_r, int(len(messages[i]) - h))
+            #t_fre_r = self.filter_los(t_fre_r, int(len(messages[i]) - h)) # change
+            #t_entry_r = self.filter_los(t_entry_r, int(len(messages[i]) - h)) # change
             if(voters == 'both'):
                 t_fre_votes = self.get_gvotes([t_fre_r, t_entry_r])
-                voter_logger.error('raw: ' + str(t_fre_votes))
-                t_candidate_loc = self.vote_for_single_message(t_fre_votes, model, v_way, T, r)
-                voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
+                #voter_logger.error('raw: ' + str(t_fre_votes))
+                t_candidate_loc = self.vote_for_single_message(t_fre_votes, diff_measure, v_way, T, r)
+                #voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
                 f_boundaries.append(t_candidate_loc)
             elif voters == 'frequent_voter':
+                voter_logger.error('raw: ' + str(raw_conv.convert_raw_to_text(messages[i])))
                 voter_logger.error('raw + frequent: ' + str(t_fre_r))
-                t_candidate_loc = self.vote_for_single_message(t_fre_r, model, v_way, T, r)
+                t_candidate_loc = self.vote_for_single_message(t_fre_r, diff_measure, v_way, T, r)
                 voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
                 f_boundaries.append(t_candidate_loc)
             else:
-                voter_logger.error('raw + entry: ' + str(t_fre_r))
-                t_candidate_loc = self.vote_for_single_message(t_entry_r, model, v_way, T, r)
-                voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
+                #voter_logger.error('raw + entry: ' + str(t_fre_r))
+                t_candidate_loc = self.vote_for_single_message(t_entry_r, diff_measure, v_way, T, r)
+                #voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
                 f_boundaries.append(t_candidate_loc)
         return f_boundaries
+
+    def raw_boundary_generate(self, messages, order_wors):
+        """
+        :param messages:
+        :param order_wors:
+        :return:
+        """
+        h = ve_parameter['height']
+        raw_orders = []
+        for message in messages:
+            raw_orders.append(self.order_vote_sequence(message, h, order_wors))
+        return raw_orders
+
+    def messages_boundary_generate(self, prim_orders, order_words):
+        """
+        :param messages:
+        :param order_words:
+        :return:
+        """
+        h = ve_parameter['height']
+        voters = ve_parameter['voters']
+        diff_measure = ve_parameter['diff_measure']
+        v_way = ve_parameter['decision_type']
+        T = ve_parameter['Threshold_T']
+        r = ve_parameter['Threshod_R']
+        f_boundaries = []
+        for prim_order in prim_orders:
+            f_boundaries.append(self.vote_for_single_message(prim_order, diff_measure, v_way, T, r))
+        return f_boundaries
+
 
     def single_message_voter_improve(self, messages):
         height = ve_parameter['height']
@@ -490,19 +648,19 @@ class voters:
             t_entry_r = self.filter_los(t_entry_r, int(len(messages[i]) - height))
             if (voters == 'both'):
                 t_fre_votes = self.get_gvotes([t_fre_r, t_entry_r])
-                voter_logger.error('raw: ' + str(t_fre_votes))
-                t_candidate_loc = self.vote_for_single_message(t_fre_votes, voters, diff_measure, T, r)
-                voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
+                #voter_logger.error('raw: ' + str(t_fre_votes))
+                t_candidate_loc = self.vote_for_single_message_improve(t_fre_votes, voters, diff_measure, T, r)
+                #voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
                 f_boundaries.append(t_candidate_loc)
             elif voters == 'frequent_voter':
-                voter_logger.error('raw + frequent: ' + str(t_fre_r))
-                t_candidate_loc = self.vote_for_single_message(t_fre_r, model, v_way, T, r)
-                voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
+                #voter_logger.error('raw + frequent: ' + str(t_fre_r))
+                t_candidate_loc = self.vote_for_single_message_improve(t_fre_r, model, v_way, T, r)
+                #voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
                 f_boundaries.append(t_candidate_loc)
             else:
-                voter_logger.error('raw + entry: ' + str(t_fre_r))
-                t_candidate_loc = self.vote_for_single_message(t_entry_r, model, v_way, T, r)
-                voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
+                #voter_logger.error('raw + entry: ' + str(t_fre_r))
+                t_candidate_loc = self.vote_for_single_message_improve(t_entry_r, model, v_way, T, r)
+                #voter_logger.error("voted: " + str(i) + " " + str(t_candidate_loc))
                 f_boundaries.append(t_candidate_loc)
         return f_boundaries
 
@@ -554,10 +712,12 @@ class voters:
         
                 
 
+if __name__ == '__main__':
+    voter = voters()
+    single_message = voter.get_keywords([[10, 10, 11, 12, 15], [10, 10, 11]], 4)
+    print(voter.filter_words(single_message))
 
 
-
-            
 
 """        
         

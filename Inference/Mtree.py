@@ -1,6 +1,6 @@
 from netzob.all import *
 from queue import queue
-from Node import *
+from Inference.Node import *
 
 class Mtree(Field):
     def __init__(self,messages,ids,threshold,start,end = -1,t_type = "const"):
@@ -21,7 +21,7 @@ class Mtree(Field):
         t_r: a dict of ids
         """
         t_los = {}
-        for node  in Nodes:
+        for node in Nodes:
             t_next = node.get_next()
             if t_next not in t_los:
                 t_los[t_next] = []

@@ -1,37 +1,25 @@
 # coding=utf-8
 from netzob.all import *
-import struct
 import math
 import os
 import sys
-import words_basic
+from Inference.words_basic import words_base
 import numpy as np
-sys.path.append('../deal_data')
-sys.path.append('../common/')
-import f_cg
-import session_deal
-import readdata
+from common.f_cg import transer
+from deal_data.session_deal import session_deal
+from common.readdata import *
+from common.Converter.base_convert import Converter
+from common.Converter.MessageConvert import MessageConvert
+from common.analyzer.analyzer_common import base_analyzer
 
 class message_dealer:
     def __init__(self):
-        self.messages = None
-        self.semessages = None
-        self.condilo = None
-        self.rightlo = None
-        self.conborders = None
-        self.rborders = None
+        self.MaxLen = 40
+        self.lengthThreshold = 0.8
+        self.constThreshold = 0.98
+        self.idThreshold = 0.7
 
-    def read_datas(self,dirs):
-        paths = os.listdir(dirs)
-        t_datas = []
-        t_sedatas = []
-        for path in paths:
-            t_path = os.path.join(dirs,path)
-            t_data = PCAPImporter.readFile(t_path).values()
-            t_datas.extend(t_data)
-            t_sedatas.append((t_data,path))
-        self.messages = t_datas
-        self.semessages = t_sedatas
+
 
     def set_conlo(self,los):
         self.condilo = los
@@ -42,167 +30,68 @@ class message_dealer:
     def set_dataM(self,messages):
         self.messages = messages
 
-
-    def clus_sesionbydi(self,messages,data="no"):
-        src = self.get_ip(messages[0].source)
-        des = self.get_ip(messages[0].destination)
-        srcs = []
-        dess = []
-        for message in messages:
-            if(self.get_ip(message.source) == src):
-                srcs.append(message)
-            else:
-                dess.append(message)
-        return srcs,dess
-
-
-
-
-
-    def find_constone(self, lo_b, lo_e,data="no",T_c=0.98):
-        # develop absolute or relative
-        conster = words_basic.words_base()
-        t_messages = []
-        if data == "no":
-            for message in self.messages:
-                t_messages.append(message.data)
-        else:
-            t_messages = self.messages
-        #print(t_messages)
-        #print(lo_b)
-        #print(lo_e)
-        #print(len(conster.get_logapinfo(t_messages,lo_b,lo_e)))
-        
-        t_r, t_l,_,_,_ = conster.get_logapinfo(t_messages,lo_b,lo_e)
-        if (t_l[0][1] > T_c):
+    def find_constone(self, datas):
+        wordDic = Converter.convert_raw_to_count(datas)
+        wordDic = sorted(wordDic.items(), key = lambda x:x[1])
+        if (wordDic[0][1] > self.constThreshold):
             return 1
         else:
             return 0
 
-    def get_constone(self,lo_b,lo_e):
-        conster = words_basic.words_base()
-        t_messages = []
-        for message in self.messages:
-            t_messages.append(message.data)
-        t_r, t_l, _ = conster.get_pureproinfo(t_messages, lo_b, lo_e)
-        return int.from_bytes(t_l[0][0],byteorder='little',signed=False)
 
-    def pearson(self, vector1, vector2):
-        n = len(vector1)
-        # simple sums
-        sum1 = sum(float(vector1[i]) for i in range(n))
-        sum2 = sum(float(vector2[i]) for i in range(n))
-        # sum up the squares
-        sum1_pow = sum([pow(v, 2.0) for v in vector1])
-        sum2_pow = sum([pow(v, 2.0) for v in vector2])
-        # sum up the products
-        p_sum = sum([vector1[i] * vector2[i] for i in range(n)])
-        # 分子num，分母den
-        num = p_sum - (sum1 * sum2 / n)
-        den = math.sqrt((sum1_pow - pow(sum1, 2) / n) * (sum2_pow - pow(sum2, 2) / n))
-        if den == 0:
-            return 0.0
-        return num / den
-
-    def caculate_prob(self, vector):
-        t_r = {}
-        for v in vector:
-            if v not in t_r:
-                t_r[v] = 1
-            else:
-                t_r[v] = t_r[v] + 1
-        for key in t_r:
-            t_r[key] = t_r[key] / len(vector)
-        return t_r
-
-    def huxinxi(self, vectorone, vectortwo, vectorthree):
-        vectorthree = []
-        t_probone = self.caculate_prob(vectorone)
-        t_probtwo = self.caculate_prob(vectortwo)
-        t_probsum = self.caculate_prob(vectorthree)
-        t_info = 0
-        for key_one in t_probone:
-            for key_two in t_probtwo:
-                if key_one + key_two not in t_probsum:
-                    continue
-                t_info = t_info + t_probsum[key_one + key_two] * np.log(
-                    t_probsum[key_one + key_two] / (t_probone[key_one] * t_probtwo[key_two]))
-        return t_info
-
-    def find_len(self, lo_s, lo_e):
-        t_lener = words_basic.words_base()
-        t_messages = []
-        for message in self.messages:
-            t_messages.append(message.data)
-        t_dataone, t_datatwo, t_lens = t_lener.get_lengthinfo(t_messages, lo_s, lo_e)
-        p_one = self.pearson(t_dataone, t_lens)
-        p_two = self.pearson(t_datatwo, t_lens)
-        if (p_one > 0.6 or p_two > 0.6):
+    def find_len(self, datas, lens):
+        t_lener = words_base()
+        t_dataone, t_datatwo = t_lener.get_lengthinfo(datas)
+        p_one = self.pearson(t_dataone, lens)
+        p_two = self.pearson(t_datatwo, lens)
+        if (p_one > self.lengthThreshold or p_two > self.lengthThreshold):
             return 1
         else:
             return 0
 
-    def find_lenbyaccuone(self, lo_s, lo_e, data="no",T_l=0.8):
-        t_lener = words_basic.words_base()
-        t_messages = []
-        if data == "no":
-            for message in self.messages:
-                t_messages.append(message.data)
-        else:
-            t_messages = self.messages
-        t_dataone, t_datatwo, t_lens = t_lener.get_lengthinfo(t_messages, lo_s, lo_e)
-        #print(t_datatwo)
-        #print(t_lens)
+    def find_lenbyaccuone(self, datas, lengths):
+        t_lener = words_base()
+        t_dataone, t_datatwo = t_lener.get_lengthinfo(datas)
         acc_big = 0
         data_nums = {}
         data_smalls = {}
         for i in range(len(t_dataone)):
-            diff = abs(t_dataone[i] - t_lens[i])
+            diff = abs(t_dataone[i] - lengths[i])
             if diff not in data_nums:
                 data_nums[diff] = 1
             else:
                 data_nums[diff] = data_nums[diff] + 1
         acc_small = 0
         for i in range(len(t_datatwo)):
-            diff = abs(t_datatwo[i] - t_lens[i])
+            diff = abs(t_datatwo[i] - lengths[i])
             if diff not in data_smalls:
                 data_smalls[diff] = 1
             else:
                 data_smalls[diff] = data_smalls[diff] + 1
-
-        #print('len:','(',lo_s,',',lo_e,')',acc_small / len(t_dataone),acc_big / len(t_dataone))
-        #print(acc_big)
-        #print(acc_small)
-        #print(len(t_dataone))
-        if ((acc_small / len(t_dataone)) > T_l or (acc_big / len(t_dataone)) > T_l):
+        for key in data_nums:
+            if acc_small < data_nums[key]:
+                acc_small = data_nums[key]
+        for key in data_smalls:
+            if acc_big < data_smalls[key]:
+                acc_big = data_smalls[key]
+        if ((acc_small / len(t_dataone)) > self.lengthThreshold or (acc_big / len(t_dataone)) > self.lengthThreshold):
             return 1
         else:
             return 0
 
-    def find_lenbyaccu(self, lo_s, lo_e, T_l, data="no"):
-        t_lener = words_basic.words_base()
+    def find_lenbyaccu(self, datas, lengths):
+        t_lener = words_base()
         t_messages = []
-        if data == "no":
-            for message in self.messages:
-                t_messages.append(message.data)
-        else:
-            t_messages = self.messages
-        t_dataone, t_datatwo, t_lens = t_lener.get_lengthinfo(t_messages, lo_s, lo_e)
-        #print(t_datatwo)
-        #print(t_lens)
+        t_dataone, t_datatwo = t_lener.get_lengthinfo(datas)
         acc_big = 0
         for i in range(len(t_dataone)):
-            if (abs((t_dataone[i] - t_lens[i])) <= 1):
+            if (abs((t_dataone[i] - lengths[i])) <= 1):
                 acc_big = acc_big + 1
         acc_small = 0
         for i in range(len(t_datatwo)):
-            if (abs((t_datatwo[i] - t_lens[i])) <= 1):
+            if (abs((t_datatwo[i] - lengths[i])) <= 1):
                 acc_small = acc_small + 1
-        #print('len:','(',lo_s,',',lo_e,')',acc_small / len(t_dataone),acc_big / len(t_dataone))
-        #print(acc_big)
-        #print(acc_small)
-        #print(len(t_dataone))
-        if ((acc_small / len(t_dataone)) > T_l or (acc_big / len(t_dataone)) > T_l):
+        if ((acc_small / len(t_dataone)) > self.lengthThreshold or (acc_big / len(t_dataone)) > self.lengthThreshold):
             return 1
         else:
             return 0
@@ -218,73 +107,42 @@ class message_dealer:
         t_listtwo = []
         for t_data in t_puredata:
             if (len(t_data) > lo):
-                t_listone.append(t_data[lo - 1:lo])
+                t_listone.append(t_data[lo-1:lo])
                 t_listtwo.append(t_data[lo:lo + 1])
         print(self.huxinxi(t_listone, t_listtwo))
 
 
-    def findserienum(self, messages, lo_s, lo_e):
-        t_lener = words_basic.words_base()
-        t_messages = []
-        for message in messages:
-            t_messages.append(message.data)
-        #print(len(t_messages))
-        t_dataone, t_datatwo, t_series = t_lener.get_seidinfo(t_messages, lo_s, lo_e)
-        #print (len(t_dataone))
-        j_one = self.pearson(t_dataone, t_series)
-        j_two = self.pearson(t_datatwo, t_series)
+    def findserienum(self, datas, t_series):
+        t_lener = words_base()
+        t_dataone, t_datatwo = t_lener.get_seidinfo(datas)
+        j_one = base_analyzer.pearson(t_dataone, t_series)
+        j_two = base_analyzer.pearson(t_datatwo, t_series)
         j_final = max(j_one, j_two)
-        if lo_s == 1:
-            print("start")
-            print(lo_s,lo_e)
-            print(t_dataone)
-            print(t_datatwo)
-            print(t_series)
         return j_final
 
-    def findseid(self,lo_s,lo_e,T_I=0.7):
-        t_serate = 0
-        i = 0
-        t_clus = session_deal.session_deal("")
-        for message in self.semessages:
-            me_src,me_des = t_clus.clus_sesionbydi(message[0])
-            if(len(me_src) ==0 or len(me_des) == 0):
-                continue
-            src_num = self.findserienum(me_src,lo_s,lo_e)
-            des_num = self.findserienum(me_des,lo_s,lo_e)
-            t_num = max(src_num,des_num)
-            t_serate = t_serate + t_num
-            i = i + 1
-        t_rate = t_serate/i
-        #print("se: " + '(' + str(lo_s) + ',' + str(lo_e) + ')' + str(t_rate))
-        if(t_rate > T_I):
+    def findseid(self, datas):
+        ids = []
+        for i,data in enumerate(datas):
+            ids.append(i)
+        tRate = self.findserienum(datas, ids)
+        if(tRate > self.idThreshold):
             return 1
         else:
             return 0
 
 
 
-    def find_constfunc(self, lo_b, lo_e,data="no"):
-        # develop absolute or relative
-        conster = words_basic.words_base()
-        t_messages = []
-        if data == "no":
-            for message in self.messages:
-                t_messages.append(message.data)
-        else:
-            t_messages = self.messages
-        t_r, t_l, _,_,_ = conster.get_logapinfo(t_messages, lo_b, lo_e)
-        #t_lo = 1 - lo_b / L
-        #t_num = 1 - len(t_r) / 255
-        t_en = 0
-        for t_pro in t_l:
-            t_en = t_en + t_pro[1] * np.log(t_pro[1])
-        t_en = -t_en
-        #print(t_l)
-        #print(t_lo,t_num,t_en)
+    def find_constfunc(self, datas):
+        """
+        get the feature of the function code
+        :param datas: List of bytes
+        :return: entry and distinct num of datas
+        """
+        t_l = Converter.convert_raw_to_count(datas)
+        t_en = base_analyzer.get_entry([value for value in t_l.values()])
         return t_en,len(t_l)
 
-    def find_func(self,t_idoms,h_len,T=0,data="no"):
+    def findFuncRe(self,t_idoms,h_len,T=0,data="no"):
         t_max = -10000
         t_f = None
         t_es = []
@@ -315,25 +173,23 @@ class message_dealer:
             if t_fnum > T:
                 T_f.append(t_idoms[i])
             i = i + 1
+        return t_f, T_f
+
+    def findFunAbs(self, datas, startLo):
+        if len(datas) == 0:
+            return -1
+        itomLen = len(datas[0])
+        TC = 255 * itomLen
+        TE = base_analyzer.get_entry([1.0 / num for num in range(TC)])
+        dataE, dataC = self.find_constfunc(datas)
+        fValue = (1 - dataC / TC) * (1 - dataE / TE) * (1 - startLo / self.MaxLen)
+        return fValue
 
 
-        return t_f,T_f
 
-
-    def find_head(self):
-        min_len = 10000
-        for message in self.messages:
-            t_len = len(message.data)
-            if t_len < min_len:
-                min_len = t_len
-        return min_len
-
-    def get_loinfo(self,location,T_c,T_l,T_s):
+    def getWordType(self,location,T_c,T_l,T_s):
         l_s = location[0]
         l_e = location[1]
-        #location_f = words_deal.message_dealer(datas)
-        #file = open(info_dir, 'w+')
-        #sys.stdout = file
         if (self.find_constone(l_s,l_e,T_c) == 1):
             return 1
         elif(self.find_lenbyaccu(l_s,l_e,T_l) == 1):
@@ -343,20 +199,6 @@ class message_dealer:
         else:
             return 4
 
-
-
-    def get_datainfo(self,location,T_c,T_l,T_f,data):
-        l_s = location[0]
-        l_e = location[1]
-        #location_f = words_deal.message_dealer(datas)
-        #file = open(info_dir, 'w+')
-        #sys.stdout = file
-        if (self.find_constone(l_s,l_e,T_c,data) == 1):
-            return 1
-        elif(self.find_lenbyaccu(l_s,l_e,T_l,data) == 1):
-            return 2
-        else:
-            return 4
 
 
     def takefirst(self,elem):
@@ -467,48 +309,6 @@ class message_dealer:
         print(t_words)
         return t_words
 
-    def idomtobor(self,borders):
-        t_borders = []
-        for t_idom in borders:
-            t_borders.append(t_idom[0])
-        t_borders.append(borders[-1][1])
-        return t_borders
-
-    def get_f1(self):
-        self.conborders = self.idomtobor(self.condilo)
-        self.rborders = self.idomtobor(self.rightlo)
-        t_H = self.rborders[-1]
-        conpbors = set(self.conborders)
-        rpborders = set(self.rborders)
-        T_boders = set([i for i in range(t_H + 1)])
-        rnborders = T_boders - rpborders
-        connbors = T_boders - conpbors
-        tpborders = rpborders&conpbors
-        fnborders = rpborders&connbors
-        fpborders = rnborders&conpbors
-        tnborders = rnborders&connbors
-        acc = (len(tpborders) + len(tnborders))/(len(tpborders) + len(tnborders) + len(fnborders) + len(fnborders))
-        pre = len(tpborders)/(len(tpborders) + len(fpborders))
-        recall = (len(tpborders)/(len(tpborders) + len(fnborders)))
-        f1 = 2*pre*recall/(pre + recall)
-        print("conb:",self.conborders)
-        print("rb:",self.rborders)
-        print("To;",T_boders)
-        print("tp:",tpborders)
-        print("fn:",tnborders)
-        print("fp:",fpborders)
-        print("tn:",tnborders)
-        print("pre:",pre)
-        print("recall:",recall)
-        print("f1:",f1)
-        return f1
-
-
-    def clus_byfun(self):
-        print('111')
-
-
-
 
 
 
@@ -594,58 +394,3 @@ def get_compaire():
         temp_file.close()
 
 
-#get_compaire()
-
-#msg = message_dealer()
-#print(msg.huxinxi([1,2,3,4],[2,2,2,2]))
-
-
-"""
-T_c = 0.98
-T_l = 0.8
-T_I = 0.7
-
-t_fone('/home/wxw/data/modbusdata','/home/wxw/paper/researchresult/words_find/modbus/',[1, 2, 5, 6, 7, 8, 9, 11, 12, 14, 17, 19, 20, 22, 23, 25, 29, 30, 32, 33, 35, 36, 39, 40, 41, 42, 44, 46, 47, 48, 50, 51, 52, 53],[(0,2),(2,4),(4,6),(6,7),(7,8)],T_c,T_l,T_I)
-"""
-#t_fone('/home/wxw/data/iec104','/home/wxw/paper/researchresult/words_find/iec104/',[1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 22, 23, 24, 26, 27, 28, 30, 31, 32, 34, 35, 36, 38, 39, 40],[(0,1),(1,2),(2,4),(4,6),(6,7),(7,8),(8,9),(9,10),(10,12)],T_c,T_l,T_I)
-
-#t_fone('/home/wxw/data/cip_datanew','/home/wxw/paper/researchresult/words_find/cip',[1, 2, 4, 6, 7, 8, 12, 16, 17, 20, 28, 29, 32, 33, 34, 35, 36, 38, 40, 41, 42, 44, 45, 46],[(0, 2), (2, 4), (4, 8), (8, 12), (12, 20), (20, 23),(23, 30),(30, 33),(33, 34),(34, 35)],T_c,T_l,T_I)
-"""
-#t_fone('/home/wxw/data/modbusdata','/home/wxw/paper/researchresult/words_find/modbus',[(0, 2), (2, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9), (9, 10), (10, 11), (11, 12), (12, 14), (14, 16), (16, 17), (17, 18), (18, 19)],[(0,2),(2,4),(4,6),(6,7),(7,8)])
-#t_two('/home/wxw/data/modbusdata','/home/wxw/paper/researchresult/modbus/borders/base/fourhout',[(0, 2), (2, 5), (5, 9), (9, 11)],[(0,2),(2,4),(4,6),(6,7),(7,8)])
-#t_two('/home/wxw/data/iec104','/home/wxw/paper/researchresult/iec104/borders/base/fourhout',[(0,3),(3,7),(7,10),(10,12),(12,15),(15,20),(20,23),(23,28)],[(0,1),(1,2),(2,4),(4,6),(6,7),(7,8),(8,9),(9,10),(10,12)])
-t_fone('/home/wxw/data/iec104','/home/wxw/paper/researchresult/words_find/iec104/',[(0, 1), (1, 2), (2, 3), (3, 4), (4, 6), (6, 7), (7, 8), (8, 10), (10, 12),     (12, 13), (13, 15), (15, 16), (16, 18), (18, 20)],[(0,1),(1,2),(2,4),(4,6),(6,7),(7,8),(8,9),(9,10),(10,12)])
-#t_two('/home/wxw/data/cip_datanew','/home/wxw/paper/researchresult/cip/borders/base/fourhout',[(0, 2), (2, 4), (4, 6), (6, 10), (10, 13), (13, 17), (17, 23), (23, 28)       , (28, 30), (30, 32), (32, 36), (36, 38), (38, 40), (40, 42)],[(0, 2), (2, 4), (4, 8), (8, 12), (12, 20), (20, 24)])
-#t_fone('/home/wxw/data/cip_datanew','/home/wxw/paper/researchresult/cip/borders/ours/fourout',[(0, 2), (2, 4), (4, 6), (6, 10), (10, 13), (13, 17), (17, 23), (23, 28) , (28, 30), (30, 32), (32, 36), (36, 38), (38, 40)],[(0, 2), (2, 4), (4, 8), (8, 12), (12, 20), (20, 24)])
-
-#t_fone('/home/wxw/data/iec104','/home/wxw/paper/researchresult/words_find/iec104',[(0, 1),(1, 2),(2, 4), (4, 6),(6, 7),(7, 9), (9, 11), (11, 12)],[(0,1),(1,2),(2,4),(4,6),(6,7),(7,8),(8,9),(9,10),(10,12)])
-
-#t_fone('/home/wxw/data/cip_datanew','/home/wxw/paper/researchresult/words_find/cip',[(0, 2), (2, 3), (3, 4), (4, 6), (6, 7), (7, 10), (10, 11), (11, 12), (12, 15), (15, 16), (16, 17), (17, 18), (18, 20), (20, 23)],[(0, 2), (2, 4), (4, 8), (8, 12), (12, 20), (20, 23),(23, 30),(30, 33),(33, 34),(34, 35)])
-"""
-"""
-Me = message_dealer()
-
-Me.read_datas('/home/wxw/data/cip_datanew')
-#Me.read_datas('/home/wxw/data/iec104')
-#Me.read_datas('/home/wxw/data/modbusdata')
-standardout = sys.stdout
-file = open('/home/wxw/paper/researchresult/cip/borders/out','w+')
-#file = open('/home/wxw/paper/researchresult/iec104/words/out','w+')
-#file = open('/home/wxw/paper/researchresult/modbus/words_de/out','w+')
-sys.stdout = file
-#print(Me.get_constone(2,3))
-#print(Me.get_constone(6,7))
-#t_se = [(0, 2), (2, 3), (3, 4), (4, 6), (6, 7), (7, 10), (10, 11), (11, 12), (12, 15), (15, 16), (16, 18), (18, 20), (20, 23)]
-#t_se = [(0, 2), (2, 5), (5, 7), (7, 8), (8, 9), (9, 11)]
-
-#t_se = [(0, 2), (2, 5), (5, 7), (7, 8), (8, 9), (9, 11), (11, 12),(12, 14)]
-t_se = [(0, 2), (2, 3), (3, 4), (4, 6), (6, 7), (7, 10), (10, 11), (11, 12), (12, 15), (15, 16), (16, 18), (18, 20), (20, 23)]
-
-Me.set_conlo(t_se)
-Me.resplit()
-Me.reclus()
-Me.idomtobor()
-#print(Me.extract_words(t_se,23))
-
-sys.stdout = standardout
-"""

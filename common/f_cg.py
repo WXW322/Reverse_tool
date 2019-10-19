@@ -32,11 +32,6 @@ class transer:
         lengths.sort(reverse=True)
         return lengths
 
-    def get_range(self,ratio,messages):
-        lengths = [len(message.data) for message in messages]
-        lengths.sort()
-        lo = int(len(messages) * ratio)
-        return lengths[lo]
 
     def listtoids(self, sequences):
         sequence_ids = []
@@ -46,8 +41,9 @@ class transer:
 
     def field_keys(self, fields):
         field_keys = []
-        for field in field_keys:
+        for field in fields:
             t_key = str(field[0]) + ' ' +str(field[1])
+            field_keys.append(t_key)
         return field_keys
 
 

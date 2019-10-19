@@ -12,7 +12,7 @@ class tree_graph:
         self.colors = {}
         self.colors["C"] = "grey"
         self.colors["S"] = "yellow"
-        self.colors["L"] = "blue"
+        self.colors["L"] = "#3299CC"
         self.colors["F"] = "red"
         self.colors["O"] = "green"
         self.colors["D"] = "pink"
@@ -40,13 +40,13 @@ class tree_graph:
         for edge in t_edges:
             t_graph.add_edge(edge)
         #graph = graphviz.graph_from_dot_data(t_graph.getvalue())
-        t_graph.write_png("examplefour.png")
+        t_graph.write_png("examplesix.png")
 
     def graph_build(self,nodes,edges):
         Nodes = []
         Edges = []
         for node in nodes:
-            t_Node = Node(str(node[0]),label = str(node[1]),shape = "circle",color = self.colors[node[2]],fillcolor=self.colors[node[2]],style="filled")
+            t_Node = Node(str(node[0]),label = str(node[1]),shape = "circle",color = self.colors[node[2]],fillcolor=self.colors[node[2]],style="filled", fontsize=16)
             Nodes.append(t_Node)
         for edge in edges:
             if len(edge) > 2:
@@ -99,6 +99,7 @@ def f_modbus_des():
     tree = tree_graph("a","B")
     tree.graph_build(Nodes,Edges)
 
-f_modbus_src()   
+f_modbus_des()
+#f_modbus_src()
 #tree = tree_graph("a","B")
 #tree.test()

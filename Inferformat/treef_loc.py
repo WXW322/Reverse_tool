@@ -1,8 +1,6 @@
-from treef import *
-from node import *
-import sys
-sys.path.append('../common/Model/')
-from canf import *
+from Inferformat.treef import *
+from Inferformat.node import *
+from common.Model.canf import *
 
 class treefL(treef):
     def __init__(self, datas, T_c, T_r):
@@ -20,13 +18,13 @@ class treefL(treef):
 
     def generate_node(self, n_data):
         t_r = []
-        t_start = self.datas[n_data[0]].now()
+        t_start = n_data[0].now()
         t_num = {}
         for data in n_data:
-            t_next = self.datas[data].next()
-            if t_next not in t_num:
-                t_num[t_next] = []
-            t_num[t_next].append(data)
+            nextLoc = data.nextLoc()
+            if nextLoc not in t_num:
+                t_num[nextLoc] = []
+            t_num[nextLoc].append(data)
         t_v = []
         for key in t_num:
             if float(len(t_num[key])) / float(len(n_data)) >= self.R and len(t_num[key]) >= self.C:

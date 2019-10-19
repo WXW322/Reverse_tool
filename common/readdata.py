@@ -2,6 +2,17 @@ import os
 from netzob.all import *
 
 
+
+def read_multity_dirs(dirs_list, ways = 'single'):
+    t_final_data = []
+    if ways == 'single':
+        for dir in dirs_list:
+            t_final_data.extend(read_datas(dir, 'single'))
+    else:
+        for dir in dirs_list:
+            t_final_data.append(read_datas(dir, 'multisession'))
+    return t_final_data
+
 def read_datas(dirs,ways = "single"):
     paths = os.listdir(dirs)
     t_datas = []
@@ -12,7 +23,6 @@ def read_datas(dirs,ways = "single"):
             t_data = PCAPImporter.readFile(t_path).values()
             t_datas.extend(t_data)
     else:
-                
         for path in paths:
             t_path = os.path.join(dirs,path)
             t_data = PCAPImporter.readFile(t_path).values()
@@ -26,6 +36,20 @@ def get_puredatas(datas):
     for data in datas:
         t_fdata.append(data.data)
     return t_fdata
+
+def get_data_bylo(datas, start_lo, end_lo=None):
+    r_datas = []
+    for data in datas:
+        if end_lo == None:
+            if start_lo < len(data):
+                r_datas.append(data[start_lo])
+        else:
+            if len(data) >= end_lo:
+                r_datas.append(data[start_lo:end_lo])
+            elif start_lo < len(data):
+                r_datas.append(data[start_lo:])
+    return r_datas
+
 
 def get_itoms(string,delimiter):
     return string.split(delimiter)
@@ -67,6 +91,7 @@ def clusbydes(messages):
         else:
             dess.append(message)
      return srcs,dess
+
 def clusbydesT(Melist):
     src_Me = []
     des_Me = []
@@ -75,4 +100,18 @@ def clusbydesT(Melist):
         src_Me.extend(src_t)
         des_Me.extend(des_t)
     return src_Me,des_Me
- 
+
+def cut_messages(messages, range):
+    cutted_messages = []
+    for message in messages:
+        if len(message) > range:
+            message = message[0:range]
+        cutted_messages.append(message)
+    return cutted_messages
+
+if __name__ == '__main__':
+    datas = read_datas('/home/wxw/data/modbustest', 'single')
+    datas = get_puredatas(datas)
+    datas = get_data_bylo(datas, 2, 5)
+    print(datas)
+

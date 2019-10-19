@@ -1,7 +1,7 @@
 import copy
 
 class node:
-    def __init__(self, loc = (0, 0), ids = [], childs = []):
+    def __init__(self, loc = (0, 0), ids = None, childs = []):
         self.children = childs
         self.loc = loc
         self.ids = ids
@@ -31,6 +31,9 @@ class node:
                     print(leaf.loc)
         else:
             pass
+
+    def get_prefix(self, loc_e):
+        pass
 
 
 
